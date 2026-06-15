@@ -45,11 +45,15 @@ const steps = ["Content", "Audience", "Schedule", "Review"];
 export function CreateCampaignWizard({
   activeSubscriberCount,
   testSubscriberCount,
-  liveSendingEnabled
+  liveSendingEnabled,
+  storeName,
+  defaultClickUrl
 }: {
   activeSubscriberCount: number;
   testSubscriberCount: number;
   liveSendingEnabled: boolean;
+  storeName: string;
+  defaultClickUrl: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -231,7 +235,7 @@ export function CreateCampaignWizard({
                 <input
                   id="clickUrl"
                   className={inputClass(Boolean(errors.clickUrl))}
-                  placeholder="https://aurelastudio.com/collections/new-arrivals"
+                  placeholder={defaultClickUrl}
                   value={form.clickUrl}
                   onChange={(event) => update("clickUrl", event.target.value)}
                 />
@@ -343,6 +347,8 @@ export function CreateCampaignWizard({
                 clickUrl={form.clickUrl}
                 imageUrl={form.imageUrl}
                 iconUrl={form.iconUrl}
+                storeName={storeName}
+                defaultClickUrl={defaultClickUrl}
               />
               <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
                 <div className="flex items-center gap-2">
@@ -392,6 +398,8 @@ export function CreateCampaignWizard({
           clickUrl={form.clickUrl}
           imageUrl={form.imageUrl}
           iconUrl={form.iconUrl}
+          storeName={storeName}
+          defaultClickUrl={defaultClickUrl}
         />
         <Card className="mt-4">
           <CardContent>
@@ -436,3 +444,4 @@ function ReviewRow({ label, value, wide }: { label: string; value: string; wide?
     </div>
   );
 }
+

@@ -1,43 +1,102 @@
 import { getStore } from "@/lib/data/store";
+import {
+  canUseProductionData,
+  getSettingsFromData,
+  getSupabaseAdminOrThrow,
+  settingsToRow
+} from "@/lib/data/supabase-repository";
 import type { AppSettings } from "@/types/domain";
 import { recordAuditLog } from "@/services/audit/audit.service";
 
-export function getSettings() {
-  return getStore().appSettings;
+const fallbackStoreName = "GrindCTRL";
+const fallbackStoreUrl = "https://grindctrl.cloud";
+
+function productionStoreName(value: string | undefined) {
+  const name = value?.trim() ?? "";
+  return name || fallbackStoreName;
 }
 
-export function updateSettings(input: Partial<AppSettings>, actorEmail: string) {
-  const store = getStore();
-  store.appSettings = {
-    ...store.appSettings,
+function productionStoreUrl(value: string | undefined) {
+  const url = value?.trim() ?? "";
+  return url || fallbackStoreUrl;
+}
+
+function normalizeSettings(settings: AppSettings): AppSettings {
+  const storeName = productionStoreName(settings.brand.storeName);
+  const storeUrl = productionStoreUrl(settings.brand.storeUrl);
+  const defaultClickUrl = settings.brand.defaultClickUrl?.trim() || storeUrl;
+
+  return {
+    ...settings,
+    brand: {
+      ...settings.brand,
+      storeName,
+      storeUrl,
+      defaultClickUrl
+    },
+    storeIntegration: {
+      ...settings.storeIntegration,
+      storeName: productionStoreName(settings.storeIntegration.storeName),
+      storeUrl: productionStoreUrl(settings.storeIntegration.storeUrl)
+    },
+    optInDiscount: {
+      ...settings.optInDiscount,
+      applyDiscountRedirectUrl: settings.optInDiscount.applyDiscountRedirectUrl?.trim() || defaultClickUrl
+    }
+  };
+}
+
+export async function getSettings() {
+  return normalizeSettings(await getSettingsFromData());
+}
+
+export async function updateSettings(input: Partial<AppSettings>, actorEmail: string) {
+  const current = await getSettings();
+  const settings: AppSettings = {
+    ...current,
     ...input,
     brand: {
-      ...store.appSettings.brand,
+      ...current.brand,
       ...input.brand
     },
     push: {
-      ...store.appSettings.push,
+      ...current.push,
       ...input.push
     },
     storeIntegration: {
-      ...store.appSettings.storeIntegration,
+      ...current.storeIntegration,
       ...input.storeIntegration
     },
     n8n: {
-      ...store.appSettings.n8n,
+      ...current.n8n,
       ...input.n8n
     },
     safety: {
-      ...store.appSettings.safety,
+      ...current.safety,
       ...input.safety
     },
     optInDiscount: {
-      ...store.appSettings.optInDiscount,
+      ...current.optInDiscount,
       ...input.optInDiscount
     }
   };
 
-  store.integrationStatus.liveSending = store.appSettings.safety.liveSendingEnabled ? "Enabled" : "Disabled";
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    const { error } = await supabase.from("app_settings").upsert(settingsToRow(settings), { onConflict: "tenant_id" });
+    if (error) throw new Error(`Settings update failed: ${error.message}`);
+    await supabase
+      .from("integration_status")
+      .update({
+        live_sending_status: settings.safety.liveSendingEnabled ? "Enabled" : "Disabled",
+        updated_at: new Date().toISOString()
+      })
+      .eq("tenant_id", settings.tenantId);
+  } else {
+    const store = getStore();
+    store.appSettings = settings;
+    store.integrationStatus.liveSending = settings.safety.liveSendingEnabled ? "Enabled" : "Disabled";
+  }
 
   recordAuditLog({
     action: "settings update",
@@ -45,5 +104,5 @@ export function updateSettings(input: Partial<AppSettings>, actorEmail: string) 
     entityType: "settings"
   });
 
-  return store.appSettings;
+  return settings;
 }

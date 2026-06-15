@@ -11,7 +11,7 @@ export const publicEnv = {
 export const serverEnv = {
   supabaseSecretKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY,
   authSessionSecret: process.env.AUTH_SESSION_SECRET ?? "local-notifypilot-session-secret-change-before-deploy",
-  adminEmail: process.env.ADMIN_EMAIL ?? "owner@aurelastudio.com",
+  adminEmail: process.env.ADMIN_EMAIL ?? "owner@notify.grindctrl.cloud",
   adminPassword:
     process.env.ADMIN_PASSWORD ??
     (process.env.NODE_ENV === "production" ? "" : "notifypilot-admin"),
@@ -21,7 +21,7 @@ export const serverEnv = {
   liveSendingEnabled: (process.env.LIVE_SENDING_ENABLED ?? "false") === "true",
   maxSendsPerHour: Number(process.env.MAX_SENDS_PER_HOUR ?? 500),
   vapidPrivateKey: process.env.VAPID_PRIVATE_KEY,
-  vapidSubject: process.env.VAPID_SUBJECT ?? "mailto:ops@aurelastudio.com",
+  vapidSubject: process.env.VAPID_SUBJECT ?? "mailto:admin@grindctrl.cloud",
   shopifyClientId: process.env.SHOPIFY_CLIENT_ID,
   shopifyClientSecret: process.env.SHOPIFY_CLIENT_SECRET,
   shopifyAppScopes:
@@ -61,3 +61,4 @@ export function canUseRealPush() {
       serverEnv.vapidPrivateKey
   );
 }
+

@@ -9,8 +9,8 @@ import { CampaignActions } from "@/components/campaigns/campaign-actions";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/utils";
 import { listCampaigns } from "@/services/campaigns/campaigns.service";
 
-export default function CampaignsPage() {
-  const campaigns = listCampaigns();
+export default async function CampaignsPage() {
+  const campaigns = await listCampaigns();
   const sent = campaigns.reduce((total, campaign) => total + campaign.sentCount, 0);
   const failed = campaigns.reduce((total, campaign) => total + campaign.failedCount, 0);
   const clicks = campaigns.reduce((total, campaign) => total + campaign.clickCount, 0);
@@ -24,7 +24,7 @@ export default function CampaignsPage() {
     <div>
       <PageHeader
         title="Campaigns"
-        description="Create, review, duplicate, and manage web push campaigns for Aurela Studio."
+        description="Create, review, duplicate, and manage web push campaigns."
         action={
           <ButtonLink href="/dashboard/campaigns/new">
             <Plus className="h-4 w-4" />
@@ -80,3 +80,6 @@ export default function CampaignsPage() {
     </div>
   );
 }
+
+
+

@@ -12,11 +12,11 @@
 | Entity | Role | Where it lives | Changes? |
 |---|---|---|---|
 | **GrindCTRL** | The white-label *platform* (`notify.grindctrl.cloud`) | App chrome: sidebar logo, login, page title, theme/skin | **Yes — this is the rebrand** |
-| **SN2Studios** | The *tenant store* being managed (`sn2studios.co`, "Your store") | Content: store-readiness, settings, subscriber data, **notification preview** (push is sent *as the store*) | **No — protected** |
+| **Tenant storefront** | The connected Shopify store being managed | Content: store-readiness, settings, subscriber data, **notification preview** (push is sent as the connected store) | **No — protected** |
 | **NotifyPilot** | Product name | Was in chrome | Dropped from chrome |
 
 **Protected (tenant) — Phase 4 must NOT repaint to GrindCTRL:**
-- `notification-preview.tsx` — "Your store" label + `sn2studios.co` URL = the shopper-facing push as SN2Studios. Stays. Its accent tint represents the *store's* brand, not the platform; keep neutral/ink, do not force GrindCTRL identity onto the simulated notification.
+- `notification-preview.tsx` — store label and click URL come from configured tenant settings. Its accent tint represents the *store's* brand, not the platform; keep neutral/ink, do not force GrindCTRL identity onto the notification payload.
 - Any `store.appSettings.brand.*` / `store.tenant.*` driven copy (store name, category, readiness blocks) — dynamic tenant data, untouched.
 
 **Source of truth:** `mhhmod/grindctrl_booking` → `src/tokens.css` (Pearl Premium light + Deep dark), `src/fonts.css`, logo SVGs (`logo.svg` currentColor, `logo-light.svg` #2a2826, `logo-dark.svg` #f0ede9).
@@ -79,7 +79,7 @@
 
 ### Phase 3 — Logo & wordmark
 - New `GrindCtrlMark` (vortex paths from `logo.svg`, `currentColor`, `viewBox="490 310 600 400"`, `aria-hidden`).
-- `components/brand/brand-logo.tsx`: replace placeholder SVG with the mark; drop the dark tile (bare mark, GrindCTRL style) or keep a quiet tile — go bare on the dark sidebar where cream mark sits on ink. Wordmark text → **"GrindCTRL"** (Manrope), subtitle retained.
+- `components/brand/brand-logo.tsx`: replace temporary SVG with the mark; drop the dark tile (bare mark, GrindCTRL style) or keep a quiet tile — go bare on the dark sidebar where cream mark sits on ink. Wordmark text → **"GrindCTRL"** (Manrope), subtitle retained.
 - `app/layout.tsx` metadata + `requireUser`/title surfaces → "GrindCTRL".
 
 ### Phase 4 — Per-surface polish + remap hardcoded oklch

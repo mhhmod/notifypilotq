@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { registerSubscriber } from "@/services/subscribers/subscribers.service";
 import { issueOptInDiscount, getDiscountUrl } from "@/services/discounts/discounts.service";
-import { getStore } from "@/lib/data/store";
+import { getTenant } from "@/lib/data/supabase-repository";
+import { serverEnv } from "@/lib/config/env";
 
 const schema = z.object({
   tenantSlug: z.string().optional(),
@@ -26,19 +27,22 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid subscription." }, { status: 400 });
 
-  const store = getStore();
-  if (parsed.data.tenantSlug && parsed.data.tenantSlug !== store.tenant.tenantSlug) {
+  const tenant = await getTenant();
+  const expectedStoreUrl = (serverEnv.shopifyPublicStoreUrl || tenant.storeUrl).replace(/\/$/, "");
+  const submittedStoreUrl = parsed.data.storeUrl?.replace(/\/$/, "");
+  if (submittedStoreUrl && submittedStoreUrl !== expectedStoreUrl) {
     return NextResponse.json({ error: "Store context not recognized." }, { status: 400 });
   }
 
   const subscriber = await registerSubscriber(parsed.data);
   const discount = await issueOptInDiscount(subscriber.id);
+  const discountUrl = discount ? await getDiscountUrl(discount.code) : undefined;
   return NextResponse.json({
     ok: true,
     subscriberId: subscriber.id,
     discountCode: discount?.code,
     discountPercent: discount?.discountPercent,
     expiresAt: discount?.expiresAt,
-    discountUrl: discount ? getDiscountUrl(discount.code) : undefined
+    discountUrl
   });
 }

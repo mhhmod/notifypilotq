@@ -6,5 +6,5 @@ export async function GET() {
   const user = await requireApiUser();
   if (isApiResponse(user)) return user;
 
-  return NextResponse.json({ campaigns: listCampaigns() });
+  return NextResponse.json({ campaigns: await listCampaigns() });
 }

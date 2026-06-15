@@ -1,10 +1,10 @@
 # NotifyPilot
 
-Web push campaigns for e-commerce stores. This MVP is configured for Aurela Studio at `https://aurelastudio.com` and deploys to `https://notify.grindctrl.cloud`.
+Web push campaigns for e-commerce stores. The production dashboard deploys to `https://notify.grindctrl.cloud`.
 
 ## Product Overview
 
-NotifyPilot collects browser push subscribers, issues opt-in discount codes, and manages notification campaigns for offers, launches, restocks, and announcements. The dashboard includes auth, overview metrics, subscribers, campaigns, a four-step create wizard, campaign details and logs, settings, store integration status, public push assets, a Shopify-ready connector layer, and an inactive n8n sender workflow.
+NotifyPilot collects browser push subscribers, issues opt-in discount codes, and manages notification campaigns for offers, launches, restocks, and announcements. The dashboard includes auth, overview metrics, subscribers, campaigns, a four-step create wizard, campaign details and logs, settings, store integration status, public push assets, a Shopify connector layer, and an inactive n8n sender workflow.
 
 ## Local Setup
 
@@ -49,7 +49,7 @@ If the Supabase CLI is not installed, apply all SQL files in `supabase/migration
 
 The seed creates:
 
-- Aurela Studio tenant
+- GrindCTRL tenant
 - admin user record
 - 25 realistic push subscribers
 - 5 realistic campaigns
@@ -147,3 +147,6 @@ See `docs/store-integration-checklist.md`.
 - Send Test works for selected test subscribers.
 - Type `SEND` confirmation is required for Send Live.
 - Confirm max sends per hour.
+
+
+

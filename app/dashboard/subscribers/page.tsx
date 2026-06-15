@@ -6,21 +6,24 @@ import { TableShell, Td, Th } from "@/components/ui/table";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { SubscriberActions } from "@/components/subscribers/subscriber-actions";
 import { formatDateTime, formatNumber, getInitials } from "@/lib/utils";
-import { getStore } from "@/lib/data/store";
+import { listDiscountCodesFromData } from "@/lib/data/supabase-repository";
 import { getSubscriberSummary, listSubscribers } from "@/services/subscribers/subscribers.service";
 
-export default function SubscribersPage() {
-  const summary = getSubscriberSummary();
-  const subscribers = listSubscribers();
+export default async function SubscribersPage() {
+  const [summary, subscribers, discounts] = await Promise.all([
+    getSubscriberSummary(),
+    listSubscribers(),
+    listDiscountCodesFromData()
+  ]);
   const discountsBySubscriber = new Map(
-    getStore().discountCodes.map((discount) => [discount.subscriberId, discount])
+    discounts.map((discount) => [discount.subscriberId, discount])
   );
 
   return (
     <div>
       <PageHeader
         title="Subscribers"
-        description="Review browser push subscribers for Aurela Studio without exposing private subscription credentials."
+        description="Review browser push subscribers without exposing private subscription credentials."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -98,3 +101,6 @@ export default function SubscribersPage() {
     </div>
   );
 }
+
+
+

@@ -1,4 +1,4 @@
-﻿---
+---
 name: GrindCTRL
 description: Web push campaigns for e-commerce stores
 colors:
@@ -71,7 +71,7 @@ components:
 
 GrindCTRL is the white-label platform that NotifyPilot runs on. The dashboard is an operational control surface for store owners preparing and reviewing web push campaigns. It should feel composed, premium, and trustworthy: the UI is quiet enough for daily use but explicit enough when send safety or store setup state matters.
 
-The identity is **monochrome warm-neutral**: ink on warm pearl in light mode, cream on deep warm-black in dark mode. There is no chromatic brand accent — the primary action is ink itself. Color appears only for semantic state (success / warning / danger). The tenant store (e.g. SN2Studios) keeps its own brand inside content surfaces such as the notification preview; the platform skin never overrides tenant brand.
+The identity is **monochrome warm-neutral**: ink on warm pearl in light mode, cream on deep warm-black in dark mode. There is no chromatic brand accent — the primary action is ink itself. Color appears only for semantic state (success / warning / danger). The connected tenant store keeps its own brand inside content surfaces such as the notification preview; the platform skin never overrides tenant brand.
 
 **Key Characteristics:**
 - Calm operational density
@@ -165,7 +165,7 @@ Depth is conveyed through tonal layering and restrained shadow. Cards sit on the
 - **Mobile:** Collapse into a drawer or stacked top control; no horizontal overflow.
 
 ### Notification Preview
-- **Style:** A realistic push notification card with Your store brand context, title, body, URL cue, and optional image/icon space.
+- **Style:** A realistic push notification card with configured store brand context, title, body, URL cue, and optional image/icon space.
 - **Behavior:** Updates live while content fields change and preserves readable wrapping at mobile widths.
 
 ## 6. Do's and Don'ts
@@ -183,6 +183,5 @@ Depth is conveyed through tonal layering and restrained shadow. Cards sit on the
 - **Don't** expose raw endpoints, p256dh, auth keys, browser subscription JSON, private secrets, or service role credentials.
 - **Don't** use side-stripe borders, gradient text, glassmorphism, decorative metric templates, or oversized rounded cards.
 - **Don't** build a marketing landing page as the first screen for dashboard users.
-
 
 

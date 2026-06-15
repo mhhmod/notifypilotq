@@ -2,8 +2,8 @@
   "use strict";
 
   var DEFAULT_CONFIG = {
-    tenantSlug: "aurela",
-    storeUrl: "https://aurelastudio.com",
+    tenantSlug: "store",
+    storeUrl: "",
     apiBaseUrl: "https://notify.grindctrl.cloud",
     vapidPublicKey: "",
     serviceWorkerPath: "/apps/notifypilot?asset=service-worker",
@@ -21,6 +21,7 @@
   };
 
   var config = Object.assign({}, DEFAULT_CONFIG, window.NotifyPilotPushConfig || {});
+  if (!config.storeUrl) config.storeUrl = window.location.origin;
 
   function urlBase64ToUint8Array(base64String) {
     var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -229,3 +230,4 @@
     boot();
   }
 })();
+

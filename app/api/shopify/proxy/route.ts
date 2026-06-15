@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { publicEnv, serverEnv } from "@/lib/config/env";
-import { getStore } from "@/lib/data/store";
+import { getTenant } from "@/lib/data/supabase-repository";
 
 const serviceWorkerSource = `
 self.addEventListener("push", function(event) {
   var payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch (_) { payload = {}; }
-  var title = payload.title || "Aurela Studio";
+  var title = payload.title || "Store update";
   var options = {
     body: payload.body || "",
     icon: payload.icon || "/icon-192.png",
@@ -42,12 +42,12 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const store = getStore();
+  const tenant = await getTenant();
   return NextResponse.json({
     ok: true,
     platform: "NotifyPilot",
-    tenantSlug: store.tenant.tenantSlug,
-    storeUrl: serverEnv.shopifyPublicStoreUrl || store.tenant.storeUrl,
+    tenantSlug: tenant.tenantSlug,
+    storeUrl: serverEnv.shopifyPublicStoreUrl || tenant.storeUrl,
     appUrl: publicEnv.appUrl,
     subscribeUrl: `${publicEnv.appUrl}/api/push/subscribe`,
     serviceWorkerPath: `${serverEnv.shopifyAppProxyPath}?asset=service-worker`,

@@ -14,7 +14,7 @@ export default async function CampaignDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const details = getCampaign(id);
+  const details = await getCampaign(id);
   if (!details) notFound();
 
   const { campaign, recipients, events, subscribers } = details;

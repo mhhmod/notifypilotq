@@ -9,20 +9,22 @@ import { StatusList } from "@/components/dashboard/status-list";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/utils";
 import { listCampaigns } from "@/services/campaigns/campaigns.service";
-import { getStore } from "@/lib/data/store";
+import { listEventsFromData } from "@/lib/data/supabase-repository";
 import { getDashboardMetrics, getSystemStatus } from "@/services/status/status.service";
 
-export default function DashboardPage() {
-  const metrics = getDashboardMetrics();
-  const campaigns = listCampaigns();
-  const status = getSystemStatus();
-  const events = getStore().pushEvents;
+export default async function DashboardPage() {
+  const [metrics, campaigns, status, events] = await Promise.all([
+    getDashboardMetrics(),
+    listCampaigns(),
+    getSystemStatus(),
+    listEventsFromData(20)
+  ]);
 
   return (
     <div>
       <PageHeader
         title="Overview"
-        description="Monitor Aurela Studio subscriber growth, campaign performance, and store connection readiness."
+        description="Monitor subscriber growth, campaign performance, and store connection readiness."
         action={<ButtonLink href="/dashboard/campaigns/new">Create Campaign</ButtonLink>}
       />
 
@@ -88,3 +90,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+

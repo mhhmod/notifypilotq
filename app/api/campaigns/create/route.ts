@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const status = parsed.data.sendMode === "Schedule for later" ? "Scheduled" : "Draft";
-    const campaign = createCampaign(parsed.data, user.email, status);
+    const campaign = await createCampaign(parsed.data, user.email, status);
     return NextResponse.json({ campaign });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to create campaign." }, { status: 400 });

@@ -6,8 +6,6 @@ export async function GET() {
   const user = await requireApiUser();
   if (isApiResponse(user)) return user;
 
-  return NextResponse.json({
-    subscribers: listSubscribers(),
-    summary: getSubscriberSummary()
-  });
+  const [subscribers, summary] = await Promise.all([listSubscribers(), getSubscriberSummary()]);
+  return NextResponse.json({ subscribers, summary });
 }

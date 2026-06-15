@@ -16,9 +16,9 @@ import type {
 
 export const tenant: Tenant = {
   id: "11111111-1111-4111-8111-111111111111",
-  tenantSlug: "aurela",
-  brandName: "Aurela Studio",
-  storeUrl: "https://aurelastudio.com",
+  tenantSlug: "store",
+  brandName: "GrindCTRL",
+  storeUrl: "https://grindctrl.cloud",
   dashboardDomain: "notify.grindctrl.cloud",
   storeCategory: "Premium fashion and lifestyle e-commerce",
   internalIntegrationMode: serverEnv.integrationMode
@@ -26,11 +26,11 @@ export const tenant: Tenant = {
 
 export const adminUsers: AdminUser[] = [
   {
-    id: "admin_aurela_owner",
+    id: "admin_store_owner",
     tenantId: tenant.id,
-    email: "owner@aurelastudio.com",
+    email: "owner@notify.grindctrl.cloud",
     role: "admin",
-    displayName: "Aurela Admin"
+    displayName: "Store Admin"
   }
 ];
 
@@ -40,31 +40,31 @@ function subscriberUuid(seedId: string) {
 }
 
 export const subscribers: PushSubscriber[] = [
-  ["sub_1001", "Visitor AUR-1001", "Chrome", "Android", "Egypt", "Active", "2026-06-02T09:20:00.000Z", "2026-06-13T08:10:00.000Z", true],
-  ["sub_1002", "Visitor AUR-1002", "Safari", "iPhone", "United Arab Emirates", "Active", "2026-06-03T12:45:00.000Z", "2026-06-12T20:18:00.000Z", true],
-  ["sub_1003", "Visitor AUR-1003", "Edge", "Windows", "Egypt", "Active", "2026-06-04T15:12:00.000Z", "2026-06-13T11:24:00.000Z", true],
-  ["sub_1004", "Visitor AUR-1004", "Chrome", "macOS", "Saudi Arabia", "Active", "2026-05-28T18:30:00.000Z", "2026-06-11T16:42:00.000Z", false],
-  ["sub_1005", "Visitor AUR-1005", "Firefox", "Desktop", "Egypt", "Active", "2026-05-30T10:01:00.000Z", "2026-06-13T07:58:00.000Z", false],
-  ["sub_1006", "Visitor AUR-1006", "Chrome", "Android", "Kuwait", "Active", "2026-06-05T14:50:00.000Z", "2026-06-12T13:07:00.000Z", false],
-  ["sub_1007", "Visitor AUR-1007", "Safari", "iPhone", "Qatar", "Inactive", "2026-05-19T17:12:00.000Z", "2026-06-04T09:40:00.000Z", false],
-  ["sub_1008", "Visitor AUR-1008", "Chrome", "Android", "Egypt", "Active", "2026-06-07T11:38:00.000Z", "2026-06-13T09:33:00.000Z", false],
-  ["sub_1009", "Visitor AUR-1009", "Safari", "macOS", "United Arab Emirates", "Active", "2026-06-01T19:15:00.000Z", "2026-06-10T18:05:00.000Z", false],
-  ["sub_1010", "Visitor AUR-1010", "Edge", "Windows", "Saudi Arabia", "Active", "2026-05-31T08:42:00.000Z", "2026-06-13T06:55:00.000Z", false],
-  ["sub_1011", "Visitor AUR-1011", "Chrome", "Android", "Jordan", "Active", "2026-06-08T12:20:00.000Z", "2026-06-13T10:12:00.000Z", false],
-  ["sub_1012", "Visitor AUR-1012", "Firefox", "Desktop", "Egypt", "Inactive", "2026-05-21T11:00:00.000Z", "2026-06-02T14:22:00.000Z", false],
-  ["sub_1013", "Visitor AUR-1013", "Chrome", "Windows", "Egypt", "Active", "2026-06-09T09:24:00.000Z", "2026-06-13T08:44:00.000Z", false],
-  ["sub_1014", "Visitor AUR-1014", "Safari", "iPhone", "Saudi Arabia", "Active", "2026-06-09T17:09:00.000Z", "2026-06-12T21:31:00.000Z", false],
-  ["sub_1015", "Visitor AUR-1015", "Chrome", "Android", "United Arab Emirates", "Active", "2026-06-10T07:50:00.000Z", "2026-06-13T09:01:00.000Z", false],
-  ["sub_1016", "Visitor AUR-1016", "Edge", "Windows", "Egypt", "Active", "2026-06-10T10:35:00.000Z", "2026-06-13T11:11:00.000Z", false],
-  ["sub_1017", "Visitor AUR-1017", "Chrome", "macOS", "Kuwait", "Active", "2026-06-10T13:05:00.000Z", "2026-06-12T15:46:00.000Z", false],
-  ["sub_1018", "Visitor AUR-1018", "Safari", "iPad", "Qatar", "Active", "2026-06-11T18:28:00.000Z", "2026-06-13T07:37:00.000Z", false],
-  ["sub_1019", "Visitor AUR-1019", "Chrome", "Android", "Egypt", "Active", "2026-06-11T20:17:00.000Z", "2026-06-13T06:49:00.000Z", false],
-  ["sub_1020", "Visitor AUR-1020", "Firefox", "Desktop", "Saudi Arabia", "Inactive", "2026-05-24T16:42:00.000Z", "2026-06-01T12:02:00.000Z", false],
-  ["sub_1021", "Visitor AUR-1021", "Chrome", "Android", "Egypt", "Active", "2026-06-12T07:18:00.000Z", "2026-06-13T10:39:00.000Z", false],
-  ["sub_1022", "Visitor AUR-1022", "Safari", "iPhone", "United Arab Emirates", "Active", "2026-06-12T15:33:00.000Z", "2026-06-13T09:29:00.000Z", false],
-  ["sub_1023", "Visitor AUR-1023", "Edge", "Windows", "Egypt", "Active", "2026-06-12T19:22:00.000Z", "2026-06-13T11:03:00.000Z", false],
-  ["sub_1024", "Visitor AUR-1024", "Chrome", "Android", "Jordan", "Active", "2026-06-13T06:40:00.000Z", "2026-06-13T10:03:00.000Z", false],
-  ["sub_1025", "Visitor AUR-1025", "Safari", "iPhone", "Egypt", "Active", "2026-06-13T08:14:00.000Z", "2026-06-13T11:19:00.000Z", false]
+  ["sub_1001", "Visitor WEB-1001", "Chrome", "Android", "Egypt", "Active", "2026-06-02T09:20:00.000Z", "2026-06-13T08:10:00.000Z", true],
+  ["sub_1002", "Visitor WEB-1002", "Safari", "iPhone", "United Arab Emirates", "Active", "2026-06-03T12:45:00.000Z", "2026-06-12T20:18:00.000Z", true],
+  ["sub_1003", "Visitor WEB-1003", "Edge", "Windows", "Egypt", "Active", "2026-06-04T15:12:00.000Z", "2026-06-13T11:24:00.000Z", true],
+  ["sub_1004", "Visitor WEB-1004", "Chrome", "macOS", "Saudi Arabia", "Active", "2026-05-28T18:30:00.000Z", "2026-06-11T16:42:00.000Z", false],
+  ["sub_1005", "Visitor WEB-1005", "Firefox", "Desktop", "Egypt", "Active", "2026-05-30T10:01:00.000Z", "2026-06-13T07:58:00.000Z", false],
+  ["sub_1006", "Visitor WEB-1006", "Chrome", "Android", "Kuwait", "Active", "2026-06-05T14:50:00.000Z", "2026-06-12T13:07:00.000Z", false],
+  ["sub_1007", "Visitor WEB-1007", "Safari", "iPhone", "Qatar", "Inactive", "2026-05-19T17:12:00.000Z", "2026-06-04T09:40:00.000Z", false],
+  ["sub_1008", "Visitor WEB-1008", "Chrome", "Android", "Egypt", "Active", "2026-06-07T11:38:00.000Z", "2026-06-13T09:33:00.000Z", false],
+  ["sub_1009", "Visitor WEB-1009", "Safari", "macOS", "United Arab Emirates", "Active", "2026-06-01T19:15:00.000Z", "2026-06-10T18:05:00.000Z", false],
+  ["sub_1010", "Visitor WEB-1010", "Edge", "Windows", "Saudi Arabia", "Active", "2026-05-31T08:42:00.000Z", "2026-06-13T06:55:00.000Z", false],
+  ["sub_1011", "Visitor WEB-1011", "Chrome", "Android", "Jordan", "Active", "2026-06-08T12:20:00.000Z", "2026-06-13T10:12:00.000Z", false],
+  ["sub_1012", "Visitor WEB-1012", "Firefox", "Desktop", "Egypt", "Inactive", "2026-05-21T11:00:00.000Z", "2026-06-02T14:22:00.000Z", false],
+  ["sub_1013", "Visitor WEB-1013", "Chrome", "Windows", "Egypt", "Active", "2026-06-09T09:24:00.000Z", "2026-06-13T08:44:00.000Z", false],
+  ["sub_1014", "Visitor WEB-1014", "Safari", "iPhone", "Saudi Arabia", "Active", "2026-06-09T17:09:00.000Z", "2026-06-12T21:31:00.000Z", false],
+  ["sub_1015", "Visitor WEB-1015", "Chrome", "Android", "United Arab Emirates", "Active", "2026-06-10T07:50:00.000Z", "2026-06-13T09:01:00.000Z", false],
+  ["sub_1016", "Visitor WEB-1016", "Edge", "Windows", "Egypt", "Active", "2026-06-10T10:35:00.000Z", "2026-06-13T11:11:00.000Z", false],
+  ["sub_1017", "Visitor WEB-1017", "Chrome", "macOS", "Kuwait", "Active", "2026-06-10T13:05:00.000Z", "2026-06-12T15:46:00.000Z", false],
+  ["sub_1018", "Visitor WEB-1018", "Safari", "iPad", "Qatar", "Active", "2026-06-11T18:28:00.000Z", "2026-06-13T07:37:00.000Z", false],
+  ["sub_1019", "Visitor WEB-1019", "Chrome", "Android", "Egypt", "Active", "2026-06-11T20:17:00.000Z", "2026-06-13T06:49:00.000Z", false],
+  ["sub_1020", "Visitor WEB-1020", "Firefox", "Desktop", "Saudi Arabia", "Inactive", "2026-05-24T16:42:00.000Z", "2026-06-01T12:02:00.000Z", false],
+  ["sub_1021", "Visitor WEB-1021", "Chrome", "Android", "Egypt", "Active", "2026-06-12T07:18:00.000Z", "2026-06-13T10:39:00.000Z", false],
+  ["sub_1022", "Visitor WEB-1022", "Safari", "iPhone", "United Arab Emirates", "Active", "2026-06-12T15:33:00.000Z", "2026-06-13T09:29:00.000Z", false],
+  ["sub_1023", "Visitor WEB-1023", "Edge", "Windows", "Egypt", "Active", "2026-06-12T19:22:00.000Z", "2026-06-13T11:03:00.000Z", false],
+  ["sub_1024", "Visitor WEB-1024", "Chrome", "Android", "Jordan", "Active", "2026-06-13T06:40:00.000Z", "2026-06-13T10:03:00.000Z", false],
+  ["sub_1025", "Visitor WEB-1025", "Safari", "iPhone", "Egypt", "Active", "2026-06-13T08:14:00.000Z", "2026-06-13T11:19:00.000Z", false]
 ].map(([id, displayName, browser, device, country, status, subscribedAt, lastSeenAt, isOwnerAllowed]) => ({
   id: subscriberUuid(String(id)),
   tenantId: tenant.id,
@@ -86,9 +86,9 @@ export const campaigns: PushCampaign[] = [
     name: "Winter Drop Early Access",
     notificationTitle: "Winter Drop is live",
     notificationBody: "Explore the latest pieces before they sell out.",
-    clickUrl: "https://aurelastudio.com/collections/new-arrivals",
-    imageUrl: "https://aurelastudio.com/cdn/shop/files/winter-drop.jpg",
-    iconUrl: "https://aurelastudio.com/cdn/shop/files/aurela-icon.png",
+    clickUrl: "https://grindctrl.cloud/collections/new-arrivals",
+    imageUrl: "https://grindctrl.cloud/cdn/shop/files/drop-preview.jpg",
+    iconUrl: "https://grindctrl.cloud/cdn/shop/files/store-icon.png",
     audience: "All active subscribers",
     status: "Sent",
     createdAt: "2026-06-12T07:30:00.000Z",
@@ -105,7 +105,7 @@ export const campaigns: PushCampaign[] = [
     name: "Private Weekend Offer",
     notificationTitle: "Private weekend offer",
     notificationBody: "Enjoy limited savings on selected essentials through Sunday.",
-    clickUrl: "https://aurelastudio.com/collections/weekend-edit",
+    clickUrl: "https://grindctrl.cloud/collections/weekend-edit",
     audience: "All active subscribers",
     status: "Sent",
     createdAt: "2026-06-07T10:15:00.000Z",
@@ -122,7 +122,7 @@ export const campaigns: PushCampaign[] = [
     name: "Back in Stock Alert",
     notificationTitle: "Back in stock",
     notificationBody: "The bestselling tailored vest is available again in limited quantities.",
-    clickUrl: "https://aurelastudio.com/products/tailored-vest",
+    clickUrl: "https://grindctrl.cloud/products/tailored-vest",
     audience: "All active subscribers",
     status: "Sent",
     createdAt: "2026-06-03T15:20:00.000Z",
@@ -139,7 +139,7 @@ export const campaigns: PushCampaign[] = [
     name: "New Collection Launch",
     notificationTitle: "The new collection arrives tonight",
     notificationBody: "Preview sculpted layers, soft tailoring, and everyday statement pieces.",
-    clickUrl: "https://aurelastudio.com/collections/collection-preview",
+    clickUrl: "https://grindctrl.cloud/collections/collection-preview",
     audience: "All active subscribers",
     status: "Scheduled",
     createdAt: "2026-06-13T06:00:00.000Z",
@@ -156,7 +156,7 @@ export const campaigns: PushCampaign[] = [
     name: "Last Chance Sale",
     notificationTitle: "Last chance to shop the edit",
     notificationBody: "Final sizes are moving quickly. Complete your picks today.",
-    clickUrl: "https://aurelastudio.com/collections/sale",
+    clickUrl: "https://grindctrl.cloud/collections/sale",
     audience: "Selected test subscribers",
     status: "Draft",
     createdAt: "2026-06-13T09:45:00.000Z",
@@ -288,8 +288,8 @@ export const discountCodes: DiscountCodeRecord[] = [
     id: "disc_push10_1001",
     tenantId: tenant.id,
     subscriberId: subscriberUuid("sub_1001"),
-    shopifyDiscountId: "local_PUSH10-AUR1001",
-    code: "PUSH10-AUR1001",
+    shopifyDiscountId: "local_PUSH10-WEB1001",
+    code: "PUSH10-WEB1001",
     discountPercent: 10,
     status: "issued",
     usageLimit: 1,
@@ -301,8 +301,8 @@ export const discountCodes: DiscountCodeRecord[] = [
     id: "disc_push10_1002",
     tenantId: tenant.id,
     subscriberId: subscriberUuid("sub_1002"),
-    shopifyDiscountId: "local_PUSH10-AUR1002",
-    code: "PUSH10-AUR1002",
+    shopifyDiscountId: "local_PUSH10-WEB1002",
+    code: "PUSH10-WEB1002",
     discountPercent: 10,
     status: "used",
     usageLimit: 1,
@@ -316,8 +316,8 @@ export const discountCodes: DiscountCodeRecord[] = [
     id: "disc_push10_1003",
     tenantId: tenant.id,
     subscriberId: subscriberUuid("sub_1003"),
-    shopifyDiscountId: "local_PUSH10-AUR1003",
-    code: "PUSH10-AUR1003",
+    shopifyDiscountId: "local_PUSH10-WEB1003",
+    code: "PUSH10-WEB1003",
     discountPercent: 10,
     status: "issued",
     usageLimit: 1,
@@ -329,8 +329,8 @@ export const discountCodes: DiscountCodeRecord[] = [
     id: "disc_push10_1004",
     tenantId: tenant.id,
     subscriberId: subscriberUuid("sub_1004"),
-    shopifyDiscountId: "local_PUSH10-AUR1004",
-    code: "PUSH10-AUR1004",
+    shopifyDiscountId: "local_PUSH10-WEB1004",
+    code: "PUSH10-WEB1004",
     discountPercent: 10,
     status: "expired",
     usageLimit: 1,
@@ -347,7 +347,7 @@ export const subscriberActivity: SubscriberActivity[] = [
     subscriberId: subscriberUuid("sub_1001"),
     activityType: "Discount issued",
     message: "10% opt-in code issued",
-    metadata: { code: "PUSH10-AUR1001" },
+    metadata: { code: "PUSH10-WEB1001" },
     createdAt: "2026-06-13T09:20:00.000Z"
   },
   {
@@ -356,7 +356,7 @@ export const subscriberActivity: SubscriberActivity[] = [
     subscriberId: subscriberUuid("sub_1002"),
     activityType: "Discount used",
     message: "Opt-in discount used at checkout",
-    metadata: { code: "PUSH10-AUR1002" },
+    metadata: { code: "PUSH10-WEB1002" },
     createdAt: "2026-06-13T16:18:00.000Z"
   },
   {
@@ -365,7 +365,7 @@ export const subscriberActivity: SubscriberActivity[] = [
     subscriberId: subscriberUuid("sub_1003"),
     activityType: "Discount issued",
     message: "10% opt-in code issued",
-    metadata: { code: "PUSH10-AUR1003" },
+    metadata: { code: "PUSH10-WEB1003" },
     createdAt: "2026-06-13T15:12:00.000Z"
   }
 ];
@@ -373,22 +373,22 @@ export const subscriberActivity: SubscriberActivity[] = [
 export const appSettings: AppSettings = {
   tenantId: tenant.id,
   brand: {
-    storeName: "Aurela Studio",
-    storeUrl: "https://aurelastudio.com",
-    defaultNotificationIcon: "https://aurelastudio.com/cdn/shop/files/aurela-icon.png",
-    defaultClickUrl: "https://aurelastudio.com/collections/new-arrivals",
+    storeName: "GrindCTRL",
+    storeUrl: "https://grindctrl.cloud",
+    defaultNotificationIcon: "https://grindctrl.cloud/cdn/shop/files/store-icon.png",
+    defaultClickUrl: "https://grindctrl.cloud/collections/new-arrivals",
     timezone: "Africa/Cairo"
   },
   push: {
     vapidPublicKey: "Configured after deployment",
-    vapidPrivateKeyMasked: "••••••••••••••••",
+    vapidPrivateKeyMasked: "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢",
     vapidSubject: serverEnv.vapidSubject,
     serviceWorkerStatus: "Ready",
     subscriberCollectionStatus: "Ready"
   },
   storeIntegration: {
-    storeName: "Aurela Studio",
-    storeUrl: "https://aurelastudio.com",
+    storeName: "GrindCTRL",
+    storeUrl: "https://grindctrl.cloud",
     platform: "Shopify",
     connectionStatus: "Setup Required",
     storefrontScript: "Pending Installation",
@@ -424,7 +424,7 @@ export const appSettings: AppSettings = {
     secondaryButtonText: "Maybe later",
     successTitle: "Your 10% discount is unlocked",
     successBody: "Use this code at checkout:",
-    applyDiscountRedirectUrl: "https://aurelastudio.com/collections/new-arrivals",
+    applyDiscountRedirectUrl: "https://grindctrl.cloud/collections/new-arrivals",
     popupDelaySeconds: 2,
     reShowAfterDismissHours: 72
   }
@@ -446,7 +446,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_campaign_create_1",
     tenantId: tenant.id,
     action: "campaign create",
-    actorEmail: "owner@aurelastudio.com",
+    actorEmail: "owner@notify.grindctrl.cloud",
     entityType: "campaign",
     entityId: "cmp_winter_drop",
     createdAt: "2026-06-12T07:30:00.000Z"
@@ -455,7 +455,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_send_live_1",
     tenantId: tenant.id,
     action: "send live",
-    actorEmail: "owner@aurelastudio.com",
+    actorEmail: "owner@notify.grindctrl.cloud",
     entityType: "campaign",
     entityId: "cmp_winter_drop",
     createdAt: "2026-06-12T07:58:00.000Z"
@@ -464,7 +464,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_settings_update_1",
     tenantId: tenant.id,
     action: "settings update",
-    actorEmail: "owner@aurelastudio.com",
+    actorEmail: "owner@notify.grindctrl.cloud",
     entityType: "settings",
     createdAt: "2026-06-11T10:18:00.000Z"
   },
@@ -472,8 +472,11 @@ export const auditLogs: AuditLog[] = [
     id: "audit_store_test_1",
     tenantId: tenant.id,
     action: "store connection test",
-    actorEmail: "owner@aurelastudio.com",
+    actorEmail: "owner@notify.grindctrl.cloud",
     entityType: "integration",
     createdAt: "2026-06-10T13:42:00.000Z"
   }
 ];
+
+
+

@@ -1,5 +1,7 @@
+import { randomUUID } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStore, newId } from "@/lib/data/store";
+import { canUseProductionData, getTenant } from "@/lib/data/supabase-repository";
 import type { ShopifyInstallation } from "@/types/domain";
 
 function normalizeShopDomain(shopDomain: string) {
@@ -29,15 +31,24 @@ function fromRow(row: {
 export async function getShopifyInstallation(shopDomain?: string) {
   const store = getStore();
   const normalized = shopDomain ? normalizeShopDomain(shopDomain) : undefined;
+  const tenant = await getTenant();
+  const supabase = createSupabaseAdminClient();
+  if (canUseProductionData() && supabase) {
+    let query = supabase.from("shopify_installations").select("*").eq("tenant_id", tenant.id);
+    if (normalized) query = query.eq("shop_domain", normalized);
+    const { data, error } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    if (error) throw new Error(`Load Shopify installation failed: ${error.message}`);
+    return data ? fromRow(data) : null;
+  }
+
   const memoryMatch = normalized
     ? store.shopifyInstallations.find((installation) => installation.shopDomain === normalized)
     : store.shopifyInstallations[0];
   if (memoryMatch) return memoryMatch;
 
-  const supabase = createSupabaseAdminClient();
   if (!supabase) return null;
 
-  let query = supabase.from("shopify_installations").select("*").eq("tenant_id", store.tenant.id);
+  let query = supabase.from("shopify_installations").select("*").eq("tenant_id", tenant.id);
   if (normalized) query = query.eq("shop_domain", normalized);
   const { data, error } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
   if (error || !data) return null;
@@ -53,12 +64,13 @@ export async function saveShopifyInstallation(input: {
   scopes: string;
 }) {
   const store = getStore();
+  const tenant = await getTenant();
   const now = new Date().toISOString();
   const shopDomain = normalizeShopDomain(input.shopDomain);
   const existing = store.shopifyInstallations.find((installation) => installation.shopDomain === shopDomain);
   const installation: ShopifyInstallation = {
-    id: existing?.id ?? newId("shopify_install"),
-    tenantId: store.tenant.id,
+    id: existing?.id ?? (canUseProductionData() ? randomUUID() : newId("shopify_install")),
+    tenantId: tenant.id,
     shopDomain,
     accessToken: input.accessToken,
     scopes: input.scopes,

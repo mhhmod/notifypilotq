@@ -6,14 +6,15 @@ self.addEventListener("push", function (event) {
     payload = {};
   }
 
-  var title = payload.title || "Aurela Studio";
+  var title = payload.title || "Store update";
+  var fallbackUrl = self.location && self.location.origin ? self.location.origin : "/";
   var options = {
     body: payload.body || "A new update is available.",
     icon: payload.icon || "/icon.png",
     image: payload.image,
     badge: payload.icon || "/icon.png",
     data: {
-      clickUrl: payload.clickUrl || "https://aurelastudio.com",
+      clickUrl: payload.clickUrl || fallbackUrl,
       campaignId: payload.campaignId,
       subscriberId: payload.subscriberId
     }
@@ -25,7 +26,7 @@ self.addEventListener("push", function (event) {
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   var data = event.notification.data || {};
-  var clickUrl = data.clickUrl || "https://aurelastudio.com";
+  var clickUrl = data.clickUrl || (self.location && self.location.origin ? self.location.origin : "/");
 
   event.waitUntil(
     Promise.allSettled([
@@ -42,3 +43,6 @@ self.addEventListener("notificationclick", function (event) {
     ])
   );
 });
+
+
+

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Campaign ID is required." }, { status: 400 });
   }
 
-  const details = getCampaign(parsed.data.campaignId);
+  const details = await getCampaign(parsed.data.campaignId);
   if (!details) return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
 
   const campaign = await sendExistingCampaignLive(details.campaign.id, "n8n");

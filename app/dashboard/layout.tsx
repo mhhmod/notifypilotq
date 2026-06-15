@@ -1,6 +1,7 @@
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { getStore } from "@/lib/data/store";
 import { requireUser } from "@/lib/auth/session";
+import { getTenant } from "@/lib/data/supabase-repository";
+import { getSettings } from "@/services/settings/settings.service";
 
 export default async function DashboardLayout({
   children
@@ -8,12 +9,12 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }>) {
   const user = await requireUser();
-  const store = getStore();
+  const [tenant, settings] = await Promise.all([getTenant(), getSettings()]);
   return (
     <DashboardShell
       user={user}
-      storeName={store.appSettings.brand.storeName}
-      storeCategory={store.tenant.storeCategory}
+      storeName={settings.brand.storeName}
+      storeCategory={tenant.storeCategory}
     >
       {children}
     </DashboardShell>

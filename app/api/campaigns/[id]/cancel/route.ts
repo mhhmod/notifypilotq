@@ -8,7 +8,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const { id } = await params;
   try {
-    const campaign = cancelCampaign(id, user.email);
+    const campaign = await cancelCampaign(id, user.email);
     return NextResponse.json({ campaign });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to cancel campaign." }, { status: 400 });

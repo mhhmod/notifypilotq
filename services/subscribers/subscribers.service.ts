@@ -1,17 +1,23 @@
 import { createHash, randomUUID } from "crypto";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getStore, newId } from "@/lib/data/store";
-import type { PushSubscriptionPayload } from "@/types/domain";
+import {
+  canUseProductionData,
+  getSupabaseAdminOrThrow,
+  getTenant,
+  insertActivity,
+  insertEvent,
+  listSubscribersFromData,
+  subscriberToRow
+} from "@/lib/data/supabase-repository";
+import type { PushSubscriber, PushSubscriptionPayload } from "@/types/domain";
 import { recordAuditLog } from "@/services/audit/audit.service";
 
-export function listSubscribers() {
-  return [...getStore().subscribers].sort(
-    (left, right) => new Date(right.subscribedAt).getTime() - new Date(left.subscribedAt).getTime()
-  );
+export async function listSubscribers() {
+  return listSubscribersFromData();
 }
 
-export function getSubscriberSummary() {
-  const subscribers = getStore().subscribers;
+export async function getSubscriberSummary() {
+  const subscribers = await listSubscribers();
   const total = subscribers.length;
   const active = subscribers.filter((subscriber) => subscriber.status === "Active").length;
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -28,24 +34,53 @@ function hashEndpoint(endpoint: string) {
   return `endpoint_${createHash("sha256").update(endpoint).digest("hex").slice(0, 24)}`;
 }
 
-function toSubscriberRow(subscriber: ReturnType<typeof listSubscribers>[number]) {
-  return {
-    id: subscriber.id,
-    tenant_id: subscriber.tenantId,
-    display_name: subscriber.displayName,
-    browser: subscriber.browser,
-    device: subscriber.device,
-    country: subscriber.country,
-    status: subscriber.status,
-    subscribed_at: subscriber.subscribedAt,
-    last_seen_at: subscriber.lastSeenAt,
-    endpoint_hash: subscriber.endpointHash,
-    is_owner_allowed: subscriber.isOwnerAllowed,
-    subscription_payload: subscriber.subscription ?? null
-  };
-}
+export async function deactivateSubscriber(subscriberId: string, actorEmail: string) {
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    const tenant = await getTenant();
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("push_subscribers")
+      .update({ status: "Inactive", last_seen_at: now, updated_at: now })
+      .eq("tenant_id", tenant.id)
+      .eq("id", subscriberId)
+      .select("*")
+      .maybeSingle();
 
-export function deactivateSubscriber(subscriberId: string, actorEmail: string) {
+    if (error) throw new Error(`Deactivate subscriber failed: ${error.message}`);
+    if (!data) throw new Error("Subscriber not found.");
+
+    await insertEvent(supabase, {
+      id: randomUUID(),
+      tenantId: tenant.id,
+      subscriberId,
+      eventType: "Subscriber deactivated",
+      message: "Subscriber deactivated",
+      createdAt: now
+    });
+    recordAuditLog({
+      action: "subscriber deactivate",
+      actorEmail,
+      entityType: "subscriber",
+      entityId: subscriberId
+    });
+
+    return {
+      id: data.id,
+      tenantId: data.tenant_id,
+      displayName: data.display_name,
+      browser: data.browser,
+      device: data.device,
+      country: data.country,
+      status: data.status,
+      subscribedAt: data.subscribed_at,
+      lastSeenAt: data.last_seen_at,
+      endpointHash: data.endpoint_hash,
+      isOwnerAllowed: Boolean(data.is_owner_allowed),
+      subscription: data.subscription_payload ?? undefined
+    } satisfies PushSubscriber;
+  }
+
   const store = getStore();
   const subscriber = store.subscribers.find((item) => item.id === subscriberId);
   if (!subscriber) throw new Error("Subscriber not found.");
@@ -78,37 +113,123 @@ export async function registerSubscriber(input: {
   device?: string;
   country?: string;
 }) {
-  const store = getStore();
   const endpointHash = hashEndpoint(input.subscription.endpoint);
-  const existing = store.subscribers.find((subscriber) => subscriber.endpointHash === endpointHash);
-  const supabase = createSupabaseAdminClient();
 
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    const tenant = await getTenant();
+    const now = new Date().toISOString();
+    const { data: existing, error: existingError } = await supabase
+      .from("push_subscribers")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .eq("endpoint_hash", endpointHash)
+      .maybeSingle();
+
+    if (existingError) throw new Error(`Load subscriber failed: ${existingError.message}`);
+
+    if (existing) {
+      const { data, error } = await supabase
+        .from("push_subscribers")
+        .update({
+          status: "Active",
+          last_seen_at: now,
+          subscription_payload: input.subscription,
+          updated_at: now
+        })
+        .eq("tenant_id", tenant.id)
+        .eq("endpoint_hash", endpointHash)
+        .select("*")
+        .maybeSingle();
+
+      if (error) throw new Error(`Update subscriber failed: ${error.message}`);
+      if (!data) throw new Error("Subscriber not found after update.");
+
+      return {
+        id: data.id,
+        tenantId: data.tenant_id,
+        displayName: data.display_name,
+        browser: data.browser,
+        device: data.device,
+        country: data.country,
+        status: data.status,
+        subscribedAt: data.subscribed_at,
+        lastSeenAt: data.last_seen_at,
+        endpointHash: data.endpoint_hash,
+        isOwnerAllowed: Boolean(data.is_owner_allowed),
+        subscription: data.subscription_payload ?? undefined
+      } satisfies PushSubscriber;
+    }
+
+    const { count, error: countError } = await supabase
+      .from("push_subscribers")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id);
+    if (countError) throw new Error(`Count subscribers failed: ${countError.message}`);
+
+    const subscriber: PushSubscriber = {
+      id: randomUUID(),
+      tenantId: tenant.id,
+      displayName: `Visitor ${String((count ?? 0) + 1001).padStart(4, "0")}`,
+      browser: input.browser ?? "Chrome",
+      device: input.device ?? "Browser",
+      country: input.country ?? "Not provided",
+      status: "Active",
+      subscribedAt: now,
+      lastSeenAt: now,
+      endpointHash,
+      isOwnerAllowed: false,
+      subscription: input.subscription
+    };
+
+    const { error } = await supabase
+      .from("push_subscribers")
+      .upsert(subscriberToRow(subscriber), { onConflict: "tenant_id,endpoint_hash" });
+    if (error) throw new Error(`Save subscriber failed: ${error.message}`);
+
+    await insertEvent(supabase, {
+      id: randomUUID(),
+      tenantId: tenant.id,
+      subscriberId: subscriber.id,
+      eventType: "Subscriber collection",
+      message: "Subscriber collected from storefront",
+      createdAt: now
+    });
+    await insertActivity(supabase, {
+      id: randomUUID(),
+      tenantId: tenant.id,
+      subscriberId: subscriber.id,
+      activityType: "Subscriber created",
+      message: "Subscriber collected from storefront",
+      createdAt: now
+    });
+    recordAuditLog({
+      action: "subscriber created",
+      actorEmail: "system@notifypilot",
+      entityType: "subscriber",
+      entityId: subscriber.id
+    });
+
+    return subscriber;
+  }
+
+  const store = getStore();
+  const existing = store.subscribers.find((subscriber) => subscriber.endpointHash === endpointHash);
   if (existing) {
     existing.status = "Active";
     existing.lastSeenAt = new Date().toISOString();
     existing.subscription = input.subscription;
-    if (supabase) {
-      await supabase
-        .from("push_subscribers")
-        .update({
-          status: existing.status,
-          last_seen_at: existing.lastSeenAt,
-          subscription_payload: existing.subscription
-        })
-        .eq("tenant_id", existing.tenantId)
-        .eq("endpoint_hash", existing.endpointHash);
-    }
     return existing;
   }
 
-  const subscriber = {
+  const subscriber: PushSubscriber = {
     id: randomUUID(),
     tenantId: store.tenant.id,
-    displayName: `Visitor AUR-${1000 + store.subscribers.length + 1}`,
+    displayName: `Visitor WEB-${1000 + store.subscribers.length + 1}`,
     browser: input.browser ?? "Chrome",
     device: input.device ?? "Browser",
     country: input.country ?? "Not provided",
-    status: "Active" as const,
+    status: "Active",
     subscribedAt: new Date().toISOString(),
     lastSeenAt: new Date().toISOString(),
     endpointHash,
@@ -134,18 +255,6 @@ export async function registerSubscriber(input: {
     createdAt: new Date().toISOString()
   });
 
-  if (supabase) {
-    await supabase.from("push_subscribers").upsert(toSubscriberRow(subscriber), { onConflict: "tenant_id,endpoint_hash" });
-    await supabase.from("subscriber_activity").insert({
-      id: randomUUID(),
-      tenant_id: store.tenant.id,
-      subscriber_id: subscriber.id,
-      activity_type: "Subscriber created",
-      message: "Subscriber collected from storefront",
-      created_at: new Date().toISOString()
-    });
-  }
-
   recordAuditLog({
     action: "subscriber created",
     actorEmail: "system@notifypilot",
@@ -156,9 +265,38 @@ export async function registerSubscriber(input: {
   return subscriber;
 }
 
-export function unsubscribePush(endpoint: string) {
-  const store = getStore();
+export async function unsubscribePush(endpoint: string) {
   const endpointHash = hashEndpoint(endpoint);
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    const tenant = await getTenant();
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("push_subscribers")
+      .update({ status: "Inactive", last_seen_at: now, updated_at: now })
+      .eq("tenant_id", tenant.id)
+      .eq("endpoint_hash", endpointHash)
+      .select("*")
+      .maybeSingle();
+    if (error) throw new Error(`Unsubscribe failed: ${error.message}`);
+    if (!data) return null;
+    return {
+      id: data.id,
+      tenantId: data.tenant_id,
+      displayName: data.display_name,
+      browser: data.browser,
+      device: data.device,
+      country: data.country,
+      status: data.status,
+      subscribedAt: data.subscribed_at,
+      lastSeenAt: data.last_seen_at,
+      endpointHash: data.endpoint_hash,
+      isOwnerAllowed: Boolean(data.is_owner_allowed),
+      subscription: data.subscription_payload ?? undefined
+    } satisfies PushSubscriber;
+  }
+
+  const store = getStore();
   const subscriber = store.subscribers.find((item) => item.endpointHash === endpointHash);
   if (!subscriber) return null;
 
@@ -166,3 +304,4 @@ export function unsubscribePush(endpoint: string) {
   subscriber.lastSeenAt = new Date().toISOString();
   return subscriber;
 }
+

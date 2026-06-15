@@ -11,8 +11,8 @@ import type {
 export class MockShopifyService implements ShopifyService {
   async getShopInfo(): Promise<ShopifyShopInfo> {
     return {
-      name: "Aurela Studio",
-      domain: "aurelastudio.com",
+      name: "GrindCTRL",
+      domain: "grindctrl.cloud",
       platform: "Shopify",
       connectionStatus: "Setup Required"
     };
@@ -62,3 +62,6 @@ export class MockShopifyService implements ShopifyService {
     return false;
   }
 }
+
+
+

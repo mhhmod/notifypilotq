@@ -6,8 +6,6 @@ export async function GET() {
   const user = await requireApiUser();
   if (isApiResponse(user)) return user;
 
-  return NextResponse.json({
-    status: getSystemStatus(),
-    metrics: getDashboardMetrics()
-  });
+  const [status, metrics] = await Promise.all([getSystemStatus(), getDashboardMetrics()]);
+  return NextResponse.json({ status, metrics });
 }

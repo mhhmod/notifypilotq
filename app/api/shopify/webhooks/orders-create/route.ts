@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { getStore, newId } from "@/lib/data/store";
+import { canUseProductionData, getSupabaseAdminOrThrow, getTenant, insertEvent } from "@/lib/data/supabase-repository";
 import { recordAuditLog } from "@/services/audit/audit.service";
 import { markDiscountUsed } from "@/services/discounts/discounts.service";
 import { RealShopifyService } from "@/services/shopify/real-shopify.service";
@@ -31,14 +33,16 @@ export async function POST(request: NextRequest) {
     if (discount) matched.push(discount.code);
   }
 
-  const store = getStore();
-  store.pushEvents.unshift({
-    id: newId("evt"),
-    tenantId: store.tenant.id,
+  const tenant = await getTenant();
+  const event = {
+    id: canUseProductionData() ? randomUUID() : newId("evt"),
+    tenantId: tenant.id,
     eventType: "Shopify webhook received",
     message: matched.length > 0 ? "Order discount usage recorded" : "Order webhook processed",
     createdAt: new Date().toISOString()
-  });
+  };
+  if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), event);
+  else getStore().pushEvents.unshift(event);
 
   recordAuditLog({
     action: "Shopify webhook received",

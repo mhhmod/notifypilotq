@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { subscriberIdSchema } from "@/lib/api/schemas";
 import { isApiResponse, requireApiUser } from "@/lib/api/auth";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { getStore, newId } from "@/lib/data/store";
+import { canUseProductionData, getSupabaseAdminOrThrow, getTenant, insertEvent } from "@/lib/data/supabase-repository";
 import { recordAuditLog } from "@/services/audit/audit.service";
+import { listSubscribers } from "@/services/subscribers/subscribers.service";
 
 export async function POST(request: NextRequest) {
   const user = await requireApiUser();
@@ -15,18 +17,19 @@ export async function POST(request: NextRequest) {
   const parsed = subscriberIdSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Subscriber is required." }, { status: 400 });
 
-  const store = getStore();
-  const subscriber = store.subscribers.find((item) => item.id === parsed.data.subscriberId);
+  const subscriber = (await listSubscribers()).find((item) => item.id === parsed.data.subscriberId);
   if (!subscriber) return NextResponse.json({ error: "Subscriber not found." }, { status: 404 });
 
-  store.pushEvents.unshift({
-    id: newId("evt"),
-    tenantId: store.tenant.id,
+  const tenant = await getTenant();
+  const event = {
+    id: randomUUID(),
+    tenantId: tenant.id,
     subscriberId: subscriber.id,
     eventType: "Sent test",
     message: "Test delivery recorded for subscriber",
     createdAt: new Date().toISOString()
-  });
+  };
+  if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), event);
   recordAuditLog({
     action: "send test",
     actorEmail: user.email,

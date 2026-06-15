@@ -1,6 +1,8 @@
 import webpush from "web-push";
+import { randomUUID } from "crypto";
 import { canUseRealPush, publicEnv, serverEnv } from "@/lib/config/env";
 import { getStore, newId } from "@/lib/data/store";
+import { canUseProductionData, getSupabaseAdminOrThrow, getTenant, insertEvent } from "@/lib/data/supabase-repository";
 import type { PushCampaign, PushSubscriber } from "@/types/domain";
 
 interface PushResult {
@@ -12,7 +14,7 @@ export async function sendPushToSubscriber(
   campaign: PushCampaign,
   subscriber: PushSubscriber
 ): Promise<PushResult> {
-  const store = getStore();
+  const tenant = await getTenant();
 
   if (
     !subscriber.subscription ||
@@ -20,15 +22,17 @@ export async function sendPushToSubscriber(
     !subscriber.subscription.keys?.auth ||
     !canUseRealPush()
   ) {
-    store.pushEvents.unshift({
-      id: newId("evt"),
-      tenantId: store.tenant.id,
+    const event = {
+      id: canUseProductionData() ? randomUUID() : newId("evt"),
+      tenantId: tenant.id,
       campaignId: campaign.id,
       subscriberId: subscriber.id,
       eventType: "Send attempt",
       message: "Delivery attempt recorded",
       createdAt: new Date().toISOString()
-    });
+    };
+    if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), event);
+    else getStore().pushEvents.unshift(event);
     return { ok: true, message: "Delivery attempt recorded" };
   }
 
@@ -57,6 +61,13 @@ export async function sendPushToSubscriber(
     const statusCode = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 0;
     if (statusCode === 404 || statusCode === 410) {
       subscriber.status = "Inactive";
+      if (canUseProductionData()) {
+        await getSupabaseAdminOrThrow()
+          .from("push_subscribers")
+          .update({ status: "Inactive", updated_at: new Date().toISOString() })
+          .eq("tenant_id", tenant.id)
+          .eq("id", subscriber.id);
+      }
     }
 
     return { ok: false, message: "Push delivery failed" };

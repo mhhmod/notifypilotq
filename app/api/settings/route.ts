@@ -6,7 +6,7 @@ export async function GET() {
   const user = await requireApiUser();
   if (isApiResponse(user)) return user;
 
-  return NextResponse.json({ settings: getSettings() });
+  return NextResponse.json({ settings: await getSettings() });
 }
 
 export async function POST(request: NextRequest) {
@@ -16,6 +16,6 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Settings update is required." }, { status: 400 });
 
-  const settings = updateSettings(body, user.email);
+  const settings = await updateSettings(body, user.email);
   return NextResponse.json({ settings });
 }

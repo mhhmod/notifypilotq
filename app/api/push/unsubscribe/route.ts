@@ -10,6 +10,6 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Endpoint is required." }, { status: 400 });
 
-  const subscriber = unsubscribePush(parsed.data.endpoint);
+  const subscriber = await unsubscribePush(parsed.data.endpoint);
   return NextResponse.json({ ok: true, subscriberId: subscriber?.id });
 }

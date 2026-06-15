@@ -8,7 +8,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const { id } = await params;
   try {
-    const result = deleteDraftCampaign(id, user.email);
+    const result = await deleteDraftCampaign(id, user.email);
     return NextResponse.json(result);
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to delete campaign." }, { status: 400 });

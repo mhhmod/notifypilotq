@@ -15,14 +15,15 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "aurelastudio.com"
+        hostname: "notify.grindctrl.cloud"
       },
       {
         protocol: "https",
-        hostname: "notify.grindctrl.cloud"
+        hostname: "grindctrl.cloud"
       }
     ]
   }
 };
 
 export default nextConfig;
+

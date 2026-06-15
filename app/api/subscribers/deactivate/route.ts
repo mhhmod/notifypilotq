@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Subscriber is required." }, { status: 400 });
 
   try {
-    const subscriber = deactivateSubscriber(parsed.data.subscriberId, user.email);
+    const subscriber = await deactivateSubscriber(parsed.data.subscriberId, user.email);
     return NextResponse.json({ subscriber });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to deactivate subscriber." }, { status: 400 });

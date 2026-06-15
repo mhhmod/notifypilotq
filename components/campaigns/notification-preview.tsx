@@ -5,13 +5,17 @@ export function NotificationPreview({
   body,
   clickUrl,
   imageUrl,
-  iconUrl
+  iconUrl,
+  storeName,
+  defaultClickUrl
 }: {
   title: string;
   body: string;
   clickUrl: string;
   imageUrl?: string;
   iconUrl?: string;
+  storeName: string;
+  defaultClickUrl: string;
 }) {
   return (
     <div className="rounded-lg border border-border bg-muted/60 p-4">
@@ -33,7 +37,7 @@ export function NotificationPreview({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold text-muted-foreground">Aurela Studio</div>
+            <div className="text-xs font-semibold text-muted-foreground">{storeName}</div>
             <div className="mt-1 text-sm font-bold leading-5 text-foreground">
               {title || "Winter Drop is live"}
             </div>
@@ -41,7 +45,7 @@ export function NotificationPreview({
               {body || "Explore the latest pieces before they sell out."}
             </div>
             <div className="mt-3 truncate text-xs font-semibold text-accent">
-              {clickUrl || "https://aurelastudio.com/collections/new-arrivals"}
+              {clickUrl || defaultClickUrl}
             </div>
           </div>
         </div>
@@ -49,3 +53,6 @@ export function NotificationPreview({
     </div>
   );
 }
+
+
+

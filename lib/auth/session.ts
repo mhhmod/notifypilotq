@@ -120,7 +120,7 @@ export async function validateLogin(email: string, password: string): Promise<Se
   return {
     email: serverEnv.adminEmail,
     role: "admin",
-    displayName: "Aurela Admin"
+    displayName: "Store Admin"
   };
 }
 
@@ -129,3 +129,4 @@ export function hasSessionCookie(cookieValue?: string) {
 }
 
 export { SESSION_COOKIE };
+

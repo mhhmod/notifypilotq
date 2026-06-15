@@ -12,6 +12,6 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ ok: false }, { status: 400 });
 
-  recordCampaignClick(parsed.data);
+  await recordCampaignClick(parsed.data);
   return NextResponse.json({ ok: true });
 }

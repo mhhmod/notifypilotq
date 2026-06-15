@@ -1,4 +1,5 @@
 import { getStore, newId } from "@/lib/data/store";
+import { canUseProductionData, getSupabaseAdminOrThrow, insertAuditLog } from "@/lib/data/supabase-repository";
 import type { AuditLog } from "@/types/domain";
 
 export function recordAuditLog(input: Omit<AuditLog, "id" | "tenantId" | "createdAt">) {
@@ -11,5 +12,11 @@ export function recordAuditLog(input: Omit<AuditLog, "id" | "tenantId" | "create
   };
 
   store.auditLogs.unshift(auditLog);
+  if (canUseProductionData()) {
+    void insertAuditLog(getSupabaseAdminOrThrow(), auditLog).catch((error) => {
+      console.error("Audit log insert failed", error);
+    });
+  }
+
   return auditLog;
 }

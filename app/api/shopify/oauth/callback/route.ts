@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { publicEnv, serverEnv } from "@/lib/config/env";
 import { getStore } from "@/lib/data/store";
+import { getSettingsFromData, getTenant } from "@/lib/data/supabase-repository";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { recordAuditLog } from "@/services/audit/audit.service";
 import { RealShopifyService } from "@/services/shopify/real-shopify.service";
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
     scopes: tokenResult.scope
   });
 
+  const tenant = await getTenant();
   const store = getStore();
   const service = new RealShopifyService(installation.accessToken, installation.shopDomain);
   const webhooks = await service.registerWebhooks();
@@ -60,13 +62,26 @@ export async function GET(request: NextRequest) {
 
   const supabase = createSupabaseAdminClient();
   if (supabase) {
+    const settings = await getSettingsFromData();
+    settings.storeIntegration.connectionStatus = "Connected";
+    settings.storeIntegration.adminApi = "Connected";
+    settings.storeIntegration.discountCreationStatus = "Ready";
+    settings.storeIntegration.webhooks = ordersWebhook?.status ?? "Ready";
+    settings.storeIntegration.ordersWebhookStatus = ordersWebhook?.status ?? "Ready";
+    await supabase
+      .from("app_settings")
+      .update({
+        store_integration_settings: settings.storeIntegration,
+        updated_at: new Date().toISOString()
+      })
+      .eq("tenant_id", tenant.id);
     await supabase
       .from("integration_status")
       .update({
         shopify_connection_status: "Connected",
         updated_at: new Date().toISOString()
       })
-      .eq("tenant_id", store.tenant.id);
+      .eq("tenant_id", tenant.id);
   }
 
   recordAuditLog({
