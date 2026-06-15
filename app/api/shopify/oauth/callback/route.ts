@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { serverEnv } from "@/lib/config/env";
+import { publicEnv, serverEnv } from "@/lib/config/env";
 import { getStore } from "@/lib/data/store";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { recordAuditLog } from "@/services/audit/audit.service";
@@ -81,5 +81,5 @@ export async function GET(request: NextRequest) {
   });
 
   cookieStore.delete(STATE_COOKIE);
-  return NextResponse.redirect(new URL("/dashboard/settings?shopify=connected", request.nextUrl.origin));
+  return NextResponse.redirect(new URL("/dashboard/settings?shopify=connected", publicEnv.appUrl));
 }
