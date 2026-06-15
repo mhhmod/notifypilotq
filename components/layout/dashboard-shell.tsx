@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -25,7 +25,13 @@ const navItems = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings }
 ];
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({
+  storeName,
+  onNavigate
+}: {
+  storeName: string;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -38,7 +44,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 py-5">
-        <BrandLogo />
+        <BrandLogo subtitle={storeName} />
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {navItems.map((item) => {
@@ -53,8 +59,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition",
                 active
-                  ? "bg-accent/18 text-[oklch(0.985_0.006_262)]"
-                  : "text-[oklch(0.985_0.006_262_/_0.68)] hover:bg-[oklch(0.985_0.006_262_/_0.08)] hover:text-[oklch(0.985_0.006_262)]"
+                  ? "bg-sidebar-foreground/15 text-sidebar-foreground"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-foreground/8 hover:text-sidebar-foreground"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -63,17 +69,17 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           );
         })}
       </nav>
-      <div className="border-t border-[oklch(0.985_0.006_262_/_0.12)] p-4">
-        <div className="rounded-lg bg-[oklch(0.985_0.006_262_/_0.06)] p-3">
-          <div className="text-xs text-[oklch(0.985_0.006_262_/_0.55)]">Dashboard domain</div>
-          <div className="mt-1 break-all text-sm font-semibold text-[oklch(0.985_0.006_262)]">
+      <div className="border-t border-sidebar-foreground/12 p-4">
+        <div className="rounded-lg bg-sidebar-foreground/6 p-3">
+          <div className="text-xs text-sidebar-foreground/55">Dashboard domain</div>
+          <div className="mt-1 break-all text-sm font-semibold text-sidebar-foreground">
             notify.grindctrl.cloud
           </div>
         </div>
         <button
           type="button"
           onClick={logout}
-          className="mt-3 w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-[oklch(0.985_0.006_262_/_0.65)] transition hover:bg-[oklch(0.985_0.006_262_/_0.08)] hover:text-[oklch(0.985_0.006_262)]"
+          className="mt-3 w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-sidebar-foreground/65 transition hover:bg-sidebar-foreground/8 hover:text-sidebar-foreground"
         >
           Sign out
         </button>
@@ -84,17 +90,21 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function DashboardShell({
   children,
-  user
+  user,
+  storeName,
+  storeCategory
 }: {
   children: React.ReactNode;
   user: SessionUser;
+  storeName: string;
+  storeCategory: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 bg-sidebar lg:block">
-        <SidebarContent />
+        <SidebarContent storeName={storeName} />
       </aside>
 
       <div className="lg:ps-72">
@@ -109,8 +119,8 @@ export function DashboardShell({
               <Menu className="h-5 w-5" />
             </button>
             <div className="min-w-0">
-              <div className="truncate text-sm font-bold">Aurela Studio</div>
-              <div className="truncate text-xs text-muted-foreground">Premium fashion and lifestyle e-commerce</div>
+              <div className="truncate text-sm font-bold">{storeName}</div>
+              <div className="truncate text-xs text-muted-foreground">{storeCategory}</div>
             </div>
             <div className="ms-auto flex items-center gap-3">
               <ThemeToggle />
@@ -136,15 +146,17 @@ export function DashboardShell({
             <button
               type="button"
               aria-label="Close navigation"
-              className="absolute end-3 top-3 rounded-md p-2 text-[oklch(0.985_0.006_262_/_0.70)] hover:bg-[oklch(0.985_0.006_262_/_0.08)] hover:text-[oklch(0.985_0.006_262)]"
+              className="absolute end-3 top-3 rounded-md p-2 text-sidebar-foreground/70 hover:bg-sidebar-foreground/8 hover:text-sidebar-foreground"
               onClick={() => setOpen(false)}
             >
               <X className="h-5 w-5" />
             </button>
-            <SidebarContent onNavigate={() => setOpen(false)} />
+            <SidebarContent storeName={storeName} onNavigate={() => setOpen(false)} />
           </aside>
         </div>
       ) : null}
     </div>
   );
 }
+
+

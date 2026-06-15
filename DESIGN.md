@@ -1,41 +1,41 @@
----
-name: NotifyPilot
+﻿---
+name: GrindCTRL
 description: Web push campaigns for e-commerce stores
 colors:
-  light-background: "oklch(0.978 0.007 84)"
-  light-foreground: "oklch(0.205 0.017 260)"
-  light-card: "oklch(0.996 0.006 92)"
-  light-accent: "oklch(0.53 0.16 276)"
-  dark-background: "oklch(0.165 0.018 260)"
-  dark-foreground: "oklch(0.925 0.008 86)"
-  dark-card: "oklch(0.205 0.02 260)"
-  dark-accent: "oklch(0.72 0.145 286)"
-  brand-mark: "oklch(0.2 0.026 260)"
-  brand-mark-foreground: "oklch(0.9 0.045 88)"
-  success: "oklch(0.58 0.14 153)"
-  warning: "oklch(0.71 0.15 76)"
-  danger: "oklch(0.6 0.18 25)"
+  light-background: "oklch(0.988 0.003 84.6)"
+  light-foreground: "oklch(0.214 0.004 84.6)"
+  light-card: "oklch(0.976 0.004 91.4)"
+  light-accent: "oklch(0.214 0.004 84.6)"
+  dark-background: "oklch(0.144 0.002 106.7)"
+  dark-foreground: "oklch(0.976 0.004 91.4)"
+  dark-card: "oklch(0.196 0.003 67.7)"
+  dark-accent: "oklch(0.976 0.004 91.4)"
+  brand-mark: "oklch(0.214 0.004 84.6)"
+  brand-mark-foreground: "oklch(0.988 0.003 84.6)"
+  success: "oklch(0.523 0.135 144.2)"
+  warning: "oklch(0.712 0.179 53.5)"
+  danger: "oklch(0.501 0.178 28.7)"
 typography:
   headline:
-    fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Manrope, system-ui, sans-serif"
     fontSize: "1.75rem"
-    fontWeight: 700
+    fontWeight: 800
     lineHeight: 1.18
-    letterSpacing: "0"
+    letterSpacing: "-0.01em"
   title:
-    fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Manrope, system-ui, sans-serif"
     fontSize: "1rem"
-    fontWeight: 650
+    fontWeight: 700
     lineHeight: 1.35
     letterSpacing: "0"
   body:
-    fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.55
     letterSpacing: "0"
   label:
-    fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "0.8125rem"
     fontWeight: 600
     lineHeight: 1.3
@@ -63,20 +63,20 @@ components:
     padding: "20px"
 ---
 
-# Design System: NotifyPilot
+# Design System: GrindCTRL
 
 ## 1. Overview
 
-**Creative North Star: "The After-Hours Launch Desk"**
+**Creative North Star: "The After-Hours Launch Desk" — in GrindCTRL Pearl Premium.**
 
-NotifyPilot is an operational control surface for store owners preparing and reviewing web push campaigns. It should feel composed, premium, and trustworthy: the UI is quiet enough for daily use but explicit enough when send safety or store setup state matters.
+GrindCTRL is the white-label platform that NotifyPilot runs on. The dashboard is an operational control surface for store owners preparing and reviewing web push campaigns. It should feel composed, premium, and trustworthy: the UI is quiet enough for daily use but explicit enough when send safety or store setup state matters.
 
-The system supports two real operating moods for a streetwear and fashion commerce brand: a warm editorial light mode for daytime review, and a charcoal night mode for late drop monitoring under city-light ambience. Both modes stay product-grade: no nightclub neon, no decorative grit, and no fashion-page theatrics inside operational flows.
+The identity is **monochrome warm-neutral**: ink on warm pearl in light mode, cream on deep warm-black in dark mode. There is no chromatic brand accent — the primary action is ink itself. Color appears only for semantic state (success / warning / danger). The tenant store (e.g. SN2Studios) keeps its own brand inside content surfaces such as the notification preview; the platform skin never overrides tenant brand.
 
 **Key Characteristics:**
 - Calm operational density
-- Streetwear-aware light and dark modes
-- Elegant apparel-style brand mark
+- Monochrome Pearl Premium light + Deep warm-black dark modes
+- Abstract GrindCTRL vortex brand mark (currentColor, no tile)
 - Strong send-safety affordances
 - Business-facing status language
 - Responsive table and form layouts
@@ -84,20 +84,19 @@ The system supports two real operating moods for a streetwear and fashion commer
 
 ## 2. Colors
 
-The palette is restrained but more fashion-aware than a default SaaS dashboard. Light mode uses warm paper neutrals and ink. Dark mode uses deep charcoal with a soft shop-window glow. Color is functional: navigation, primary action, focus, and semantic state.
+Monochrome warm-neutral. Light mode is warm pearl + ink; dark mode is deep warm-black + cream. Color is functional only: primary action and selection use ink; semantic state uses success/warning/danger. No chromatic accent.
 
 ### Primary
-- **Runway Violet** (`oklch(0.53 0.16 276)` light, `oklch(0.72 0.145 286)` dark): Primary actions, active navigation, focus rings, and selected controls.
-- **Aurela Mark Ink** (`oklch(0.2 0.026 260)`): Logo tile in light mode.
-- **Aurela Mark Thread** (`oklch(0.9 0.045 88)`): Logo linework and dark-mode mark surface.
+- **Ink** (`oklch(0.214 0.004 84.6)` light / `oklch(0.976 0.004 91.4)` dark): Primary actions, active navigation, focus rings, and selected controls. In dark mode the primary surface inverts to cream.
+- **Brand Mark** (ink light / cream dark via `currentColor`): The vortex mark inherits surface text color — ink on light, cream on the dark sidebar.
 
 ### Neutral
-- **Atelier Paper** (`oklch(0.978 0.007 84)`): Light-mode app background.
-- **Fitting Room Surface** (`oklch(0.996 0.006 92)`): Light-mode cards, panels, form surfaces, and tables.
-- **Midnight Asphalt** (`oklch(0.165 0.018 260)`): Dark-mode app background.
-- **Black Denim Surface** (`oklch(0.205 0.02 260)`): Dark-mode cards and tables.
-- **Ink** (`oklch(0.205 0.017 260)` light, `oklch(0.925 0.008 86)` dark): Main text.
-- **Operational Muted** (`oklch(0.46 0.021 256)` light, `oklch(0.72 0.018 86)` dark): Secondary text.
+- **Pearl Canvas** (`oklch(0.988 0.003 84.6)`): Light-mode app background.
+- **Surface** (`oklch(0.976 0.004 91.4)`): Light-mode cards, panels, form surfaces, and tables.
+- **Deep Warm-Black** (`oklch(0.144 0.002 106.7)`): Dark-mode app background.
+- **Dark Surface** (`oklch(0.196 0.003 67.7)`): Dark-mode cards and tables.
+- **Ink Text** (`oklch(0.214 0.004 84.6)` light / `oklch(0.976 0.004 91.4)` dark): Main text.
+- **Ink-Dim Muted** (`oklch(0.412 0.011 67.5)` light / `oklch(0.727 0.007 67.7)` dark): Secondary text. Note: ink-muted (`L 0.62`) fails AA on pearl — it is reserved for disabled/decorative only, never body text.
 
 ### Semantic
 - **Ready Green** (`oklch(0.62 0.15 152)`): Successful delivery, connected state, and ready status.
@@ -107,19 +106,20 @@ The palette is restrained but more fashion-aware than a default SaaS dashboard. 
 ### Named Rules
 **The Status Language Rule.** Color supports status labels; it never replaces precise wording like Setup Required, Pending Installation, Ready, Disabled, or Not Connected.
 
-**The Streetwear Restraint Rule.** Apparel energy can live in palette, logo, and small moments. Tables, settings, and send controls stay calm and familiar.
+**The Monochrome Rule.** The platform skin carries no chromatic accent — primary action and selection are ink. Color appears only for semantic status and for tenant brand inside content (e.g. the notification preview).
 
 ## 3. Typography
 
-**Display Font:** System UI stack  
-**Body Font:** System UI stack  
-**Label/Mono Font:** System UI stack
+**Display Font:** Manrope (variable, weights 500–800)  
+**Body Font:** Inter (variable, weights 400–700)  
+**Arabic Font:** IBM Plex Sans Arabic (i18n fallback)  
+**Mono Font:** SF Mono / IBM Plex Mono fallback for endpoints and codes
 
-**Character:** Native, compact, and trustworthy. Type hierarchy comes from weight and spacing discipline, not oversized display text.
+**Character:** Premium and trustworthy. Manrope carries headings and the wordmark; Inter carries body, labels, and data. Hierarchy comes from weight and spacing discipline, not oversized display text.
 
 ### Hierarchy
-- **Headline** (700, `1.75rem`, 1.18): Page titles and major flow headers.
-- **Title** (650, `1rem`, 1.35): Card titles, table section labels, and settings group headers.
+- **Headline** (Manrope 800, `1.75rem`, 1.18): Page titles and major flow headers.
+- **Title** (Manrope 700, `1rem`, 1.35): Card titles, table section labels, and settings group headers.
 - **Body** (400, `0.9375rem`, 1.55): Descriptions, form help, table content, and review summaries.
 - **Label** (600, `0.8125rem`, 1.3): Form labels, badges, metadata, and compact controls.
 
@@ -139,8 +139,8 @@ Depth is conveyed through tonal layering and restrained shadow. Cards sit on the
 ## 5. Components
 
 ### Buttons
-- **Shape:** Low-radius rectangle (6px).
-- **Primary:** Pilot Accent background with Accent Foreground text, compact padding, and visible focus ring.
+- **Shape:** Soft-radius rectangle (10px / `rounded-md`).
+- **Primary:** Ink background with cream text (inverts to cream-on-ink in dark mode), compact padding, and visible focus ring.
 - **Hover / Focus:** Slight tonal darkening and clear focus outline. Never rely on color alone for destructive actions.
 - **Secondary / Ghost:** Neutral border or transparent surface, consistent height with primary buttons.
 
@@ -149,15 +149,15 @@ Depth is conveyed through tonal layering and restrained shadow. Cards sit on the
 - **State:** Draft, Tested, Queued, Scheduled, Sending, Sent, Failed, Cancelled, Ready, Disabled, Setup Required, Pending Installation, Not Connected.
 
 ### Cards / Containers
-- **Corner Style:** Tight premium radius (8px maximum for cards).
+- **Corner Style:** Soft premium radius (14px / `rounded-lg` for cards, 16px for panels).
 - **Background:** Clean Surface over Cool Worksurface.
 - **Shadow Strategy:** Card Lift on dashboard cards and table containers; flat for nested information rows.
 - **Border:** One subtle full border. No side-stripe accents.
 - **Internal Padding:** 16px on compact mobile surfaces, 20px to 24px on desktop cards.
 
 ### Inputs / Fields
-- **Style:** White-tinted surface, full border, 6px radius, compact vertical rhythm.
-- **Focus:** Pilot Accent outline with enough contrast.
+- **Style:** Surface-tinted, full border, 10px radius, compact vertical rhythm.
+- **Focus:** Ink outline with enough contrast.
 - **Error / Disabled:** Error text and border for validation; muted background for disabled fields.
 
 ### Navigation
@@ -165,7 +165,7 @@ Depth is conveyed through tonal layering and restrained shadow. Cards sit on the
 - **Mobile:** Collapse into a drawer or stacked top control; no horizontal overflow.
 
 ### Notification Preview
-- **Style:** A realistic push notification card with Aurela Studio brand context, title, body, URL cue, and optional image/icon space.
+- **Style:** A realistic push notification card with Your store brand context, title, body, URL cue, and optional image/icon space.
 - **Behavior:** Updates live while content fields change and preserves readable wrapping at mobile widths.
 
 ## 6. Do's and Don'ts
@@ -183,3 +183,6 @@ Depth is conveyed through tonal layering and restrained shadow. Cards sit on the
 - **Don't** expose raw endpoints, p256dh, auth keys, browser subscription JSON, private secrets, or service role credentials.
 - **Don't** use side-stripe borders, gradient text, glassmorphism, decorative metric templates, or oversized rounded cards.
 - **Don't** build a marketing landing page as the first screen for dashboard users.
+
+
+

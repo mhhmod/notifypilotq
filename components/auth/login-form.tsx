@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -45,7 +45,7 @@ export function LoginForm() {
         </div>
         <div>
           <h2 className="text-base font-bold text-foreground">Sign in</h2>
-          <p className="text-sm text-muted-foreground">Access the Aurela Studio dashboard</p>
+          <p className="text-sm text-muted-foreground">Access the GrindCTRL dashboard</p>
         </div>
       </div>
 
@@ -81,3 +81,5 @@ export function LoginForm() {
     </form>
   );
 }
+
+

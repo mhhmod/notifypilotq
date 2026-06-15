@@ -17,14 +17,23 @@ const config: Config = {
         border: "oklch(var(--border) / <alpha-value>)",
         sidebar: "oklch(var(--sidebar) / <alpha-value>)",
         "sidebar-muted": "oklch(var(--sidebar-muted) / <alpha-value>)",
+        "sidebar-foreground": "oklch(var(--sidebar-foreground) / <alpha-value>)",
         accent: "oklch(var(--accent) / <alpha-value>)",
         "accent-foreground": "oklch(var(--accent-foreground) / <alpha-value>)",
         success: "oklch(var(--success) / <alpha-value>)",
         warning: "oklch(var(--warning) / <alpha-value>)",
         danger: "oklch(var(--danger) / <alpha-value>)"
       },
+      borderRadius: {
+        sm: "0.5rem",
+        DEFAULT: "0.625rem",
+        md: "0.625rem",
+        lg: "0.875rem",
+        xl: "1rem",
+        "2xl": "1.25rem"
+      },
       boxShadow: {
-        card: "0 1px 2px oklch(0.18 0.018 255 / 0.06), 0 12px 32px oklch(0.18 0.018 255 / 0.06)"
+        card: "0 1px 2px oklch(0.214 0.004 84.6 / 0.04), 0 12px 32px oklch(0.214 0.004 84.6 / 0.05)"
       }
     }
   },
