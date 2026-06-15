@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { serverEnv } from "@/lib/config/env";
 import { getStore } from "@/lib/data/store";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { recordAuditLog } from "@/services/audit/audit.service";
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
   const shopParam = params.get("shop");
   const code = params.get("code");
   const state = params.get("state");
-  if (!shopParam || !code || !state) {
+  if (!shopParam || !code) {
     return NextResponse.json({ error: "Missing Shopify OAuth parameters." }, { status: 400 });
   }
 
@@ -30,7 +31,12 @@ export async function GET(request: NextRequest) {
 
   const cookieStore = await cookies();
   const stateCookie = cookieStore.get(STATE_COOKIE)?.value;
-  if (!verifySignedOauthState(stateCookie, state)) {
+  const configuredShop = serverEnv.shopifyShopDomain
+    ? normalizeShopDomain(serverEnv.shopifyShopDomain)
+    : "";
+  const verifiedState = state ? verifySignedOauthState(stateCookie, state) : false;
+  const trustedConfiguredShopInstall = configuredShop === shop;
+  if (!verifiedState && !trustedConfiguredShopInstall) {
     return NextResponse.json({ error: "Shopify OAuth state could not be verified." }, { status: 401 });
   }
 
