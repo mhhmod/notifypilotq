@@ -1,10 +1,7 @@
-import { LockKeyhole, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge, statusTone } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { IntegrationChecklist } from "@/components/settings/integration-checklist";
-import { SettingsActions } from "@/components/settings/settings-actions";
 import { getSettings } from "@/services/settings/settings.service";
 
 function Row({
@@ -34,36 +31,10 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Settings"
-        description="Manage brand defaults, push readiness, store integration, n8n connection, and live-send safety."
+        description="Manage your Shopify store integration and the subscriber opt-in discount offer."
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader title="Brand Settings" description="Default store identity used across notifications." />
-          <CardContent>
-            <dl>
-              <Row label="Store name" value={settings.brand.storeName} />
-              <Row label="Store URL" value={settings.brand.storeUrl} />
-              <Row label="Default notification icon" value={settings.brand.defaultNotificationIcon} />
-              <Row label="Default click URL" value={settings.brand.defaultClickUrl} />
-              <Row label="Timezone" value={settings.brand.timezone} />
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="Push Settings" description="Push key and service worker readiness." />
-          <CardContent>
-            <dl>
-              <Row label="VAPID public key" value={settings.push.vapidPublicKey} />
-              <Row label="VAPID private key" value={settings.push.vapidPrivateKeyMasked} />
-              <Row label="VAPID subject" value={settings.push.vapidSubject} />
-              <Row label="Service worker status" value={settings.push.serviceWorkerStatus} badge />
-              <Row label="Subscriber collection status" value={settings.push.subscriberCollectionStatus} badge />
-            </dl>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader title="Store Integration" description="Shopify setup and storefront installation status." />
           <CardContent>
@@ -93,9 +64,6 @@ export default async function SettingsPage() {
             </dl>
             <div className="mt-5 flex flex-wrap gap-2">
               <IntegrationChecklist />
-              <Button type="button" disabled>
-                Configuration Required
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -121,53 +89,6 @@ export default async function SettingsPage() {
               <Row label="Popup delay seconds" value={settings.optInDiscount.popupDelaySeconds} />
               <Row label="Re-show after dismiss hours" value={settings.optInDiscount.reShowAfterDismissHours} />
             </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader title="n8n Connection" description="Campaign sender workflow status." />
-          <CardContent>
-            <dl>
-              <Row label="n8n base URL" value={settings.n8n.baseUrl} />
-              <Row label="Campaign sender webhook status" value={settings.n8n.campaignSenderWebhookStatus} badge />
-              <Row label="Last workflow run" value={settings.n8n.lastWorkflowRun} />
-            </dl>
-            <div className="mt-5">
-              <SettingsActions />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="xl:col-span-2">
-          <CardHeader
-            title="Safety Settings"
-            description="Send controls that keep live delivery conservative until the store connection is fully prepared."
-            action={
-              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                <ShieldCheck className="h-4 w-4 text-success" />
-                Require SEND confirmation
-              </div>
-            }
-          />
-          <CardContent>
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-              <dl>
-                <Row label="Owner Test Mode" value={settings.safety.ownerTestMode} />
-                <Row label="Live Sending Enabled" value={settings.safety.liveSendingEnabled} badge />
-                <Row label="Max sends per hour" value={settings.safety.maxSendsPerHour} />
-                <Row label="Require SEND confirmation" value={settings.safety.requireSendConfirmation} />
-                <Row label="Allowed test subscribers" value={settings.safety.allowedTestSubscribers.join(", ")} />
-              </dl>
-              <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
-                <div className="flex items-center gap-2">
-                  <LockKeyhole className="h-4 w-4 text-amber-800" />
-                  <h3 className="text-sm font-bold text-amber-900">Live Sending Disabled</h3>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-amber-900">
-                  Campaigns can be saved and sent to selected test subscribers. Full audience live sending remains locked until enabled in safety settings.
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
