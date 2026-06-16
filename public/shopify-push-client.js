@@ -209,6 +209,34 @@
     }
   }
 
+  function delay(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  // "AbortError: Registration failed - push service error" is frequently a
+  // transient failure to reach Google's FCM endpoint; retry with backoff.
+  async function subscribeWithRetry(registration, attempts) {
+    var lastError;
+    for (var i = 0; i < attempts; i += 1) {
+      try {
+        return await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey)
+        });
+      } catch (error) {
+        lastError = error;
+        if (error && error.name === "AbortError" && i < attempts - 1) {
+          await delay(1500 * (i + 1));
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw lastError;
+  }
+
   async function syncSubscription() {
     if (!canUsePush() || !config.vapidPublicKey) {
       throw new Error("Push channel is not available.");
@@ -229,10 +257,7 @@
       subscription = null;
     }
     if (!subscription) {
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey)
-      });
+      subscription = await subscribeWithRetry(registration, 3);
     }
     var response = await fetch(apiUrl("/api/push/subscribe"), {
       method: "POST",
