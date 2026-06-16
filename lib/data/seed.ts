@@ -16,10 +16,10 @@ import type {
 
 export const tenant: Tenant = {
   id: "11111111-1111-4111-8111-111111111111",
-  tenantSlug: "store",
-  brandName: "GrindCTRL",
-  storeUrl: "https://grindctrl.cloud",
-  dashboardDomain: "notify.grindctrl.cloud",
+  tenantSlug: "sn2-studios",
+  brandName: "SN2 Studios",
+  storeUrl: "https://sn2studios.co",
+  dashboardDomain: "notify.lnnsy.com",
   storeCategory: "Premium fashion and lifestyle e-commerce",
   internalIntegrationMode: serverEnv.integrationMode
 };
@@ -28,7 +28,7 @@ export const adminUsers: AdminUser[] = [
   {
     id: "admin_store_owner",
     tenantId: tenant.id,
-    email: "owner@notify.grindctrl.cloud",
+    email: "owner@sn2studios.co",
     role: "admin",
     displayName: "Store Admin"
   }
@@ -86,9 +86,9 @@ export const campaigns: PushCampaign[] = [
     name: "Winter Drop Early Access",
     notificationTitle: "Winter Drop is live",
     notificationBody: "Explore the latest pieces before they sell out.",
-    clickUrl: "https://grindctrl.cloud/collections/new-arrivals",
-    imageUrl: "https://grindctrl.cloud/cdn/shop/files/drop-preview.jpg",
-    iconUrl: "https://grindctrl.cloud/cdn/shop/files/store-icon.png",
+    clickUrl: "https://sn2studios.co/collections/new-arrivals",
+    imageUrl: "https://sn2studios.co/cdn/shop/files/drop-preview.jpg",
+    iconUrl: "https://sn2studios.co/cdn/shop/files/store-icon.png",
     audience: "All active subscribers",
     status: "Sent",
     createdAt: "2026-06-12T07:30:00.000Z",
@@ -105,7 +105,7 @@ export const campaigns: PushCampaign[] = [
     name: "Private Weekend Offer",
     notificationTitle: "Private weekend offer",
     notificationBody: "Enjoy limited savings on selected essentials through Sunday.",
-    clickUrl: "https://grindctrl.cloud/collections/weekend-edit",
+    clickUrl: "https://sn2studios.co/collections/weekend-edit",
     audience: "All active subscribers",
     status: "Sent",
     createdAt: "2026-06-07T10:15:00.000Z",
@@ -122,7 +122,7 @@ export const campaigns: PushCampaign[] = [
     name: "Back in Stock Alert",
     notificationTitle: "Back in stock",
     notificationBody: "The bestselling tailored vest is available again in limited quantities.",
-    clickUrl: "https://grindctrl.cloud/products/tailored-vest",
+    clickUrl: "https://sn2studios.co/products/tailored-vest",
     audience: "All active subscribers",
     status: "Sent",
     createdAt: "2026-06-03T15:20:00.000Z",
@@ -139,7 +139,7 @@ export const campaigns: PushCampaign[] = [
     name: "New Collection Launch",
     notificationTitle: "The new collection arrives tonight",
     notificationBody: "Preview sculpted layers, soft tailoring, and everyday statement pieces.",
-    clickUrl: "https://grindctrl.cloud/collections/collection-preview",
+    clickUrl: "https://sn2studios.co/collections/collection-preview",
     audience: "All active subscribers",
     status: "Scheduled",
     createdAt: "2026-06-13T06:00:00.000Z",
@@ -156,7 +156,7 @@ export const campaigns: PushCampaign[] = [
     name: "Last Chance Sale",
     notificationTitle: "Last chance to shop the edit",
     notificationBody: "Final sizes are moving quickly. Complete your picks today.",
-    clickUrl: "https://grindctrl.cloud/collections/sale",
+    clickUrl: "https://sn2studios.co/collections/sale",
     audience: "Selected test subscribers",
     status: "Draft",
     createdAt: "2026-06-13T09:45:00.000Z",
@@ -373,10 +373,10 @@ export const subscriberActivity: SubscriberActivity[] = [
 export const appSettings: AppSettings = {
   tenantId: tenant.id,
   brand: {
-    storeName: "GrindCTRL",
-    storeUrl: "https://grindctrl.cloud",
-    defaultNotificationIcon: "https://grindctrl.cloud/cdn/shop/files/store-icon.png",
-    defaultClickUrl: "https://grindctrl.cloud/collections/new-arrivals",
+    storeName: "SN2 Studios",
+    storeUrl: "https://sn2studios.co",
+    defaultNotificationIcon: "https://sn2studios.co/cdn/shop/files/store-icon.png",
+    defaultClickUrl: "https://sn2studios.co/collections/new-arrivals",
     timezone: "Africa/Cairo"
   },
   push: {
@@ -387,8 +387,8 @@ export const appSettings: AppSettings = {
     subscriberCollectionStatus: "Ready"
   },
   storeIntegration: {
-    storeName: "GrindCTRL",
-    storeUrl: "https://grindctrl.cloud",
+    storeName: "SN2 Studios",
+    storeUrl: "https://sn2studios.co",
     platform: "Shopify",
     connectionStatus: "Setup Required",
     storefrontScript: "Pending Installation",
@@ -424,7 +424,7 @@ export const appSettings: AppSettings = {
     secondaryButtonText: "Maybe later",
     successTitle: "Your 10% discount is unlocked",
     successBody: "Use this code at checkout:",
-    applyDiscountRedirectUrl: "https://grindctrl.cloud/collections/new-arrivals",
+    applyDiscountRedirectUrl: "https://sn2studios.co/collections/new-arrivals",
     popupDelaySeconds: 2,
     reShowAfterDismissHours: 72
   }
@@ -446,7 +446,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_campaign_create_1",
     tenantId: tenant.id,
     action: "campaign create",
-    actorEmail: "owner@notify.grindctrl.cloud",
+    actorEmail: "owner@sn2studios.co",
     entityType: "campaign",
     entityId: "cmp_winter_drop",
     createdAt: "2026-06-12T07:30:00.000Z"
@@ -455,7 +455,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_send_live_1",
     tenantId: tenant.id,
     action: "send live",
-    actorEmail: "owner@notify.grindctrl.cloud",
+    actorEmail: "owner@sn2studios.co",
     entityType: "campaign",
     entityId: "cmp_winter_drop",
     createdAt: "2026-06-12T07:58:00.000Z"
@@ -464,7 +464,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_settings_update_1",
     tenantId: tenant.id,
     action: "settings update",
-    actorEmail: "owner@notify.grindctrl.cloud",
+    actorEmail: "owner@sn2studios.co",
     entityType: "settings",
     createdAt: "2026-06-11T10:18:00.000Z"
   },
@@ -472,7 +472,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_store_test_1",
     tenantId: tenant.id,
     action: "store connection test",
-    actorEmail: "owner@notify.grindctrl.cloud",
+    actorEmail: "owner@sn2studios.co",
     entityType: "integration",
     createdAt: "2026-06-10T13:42:00.000Z"
   }

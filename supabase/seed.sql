@@ -8,10 +8,10 @@ insert into public.np_tenants (
   internal_integration_mode
 ) values (
   '11111111-1111-4111-8111-111111111111',
-  'store',
+  'sn2-studios',
   'SN2 Studios',
   'https://sn2studios.co',
-  'notify.grindctrl.cloud',
+  'notify.lnnsy.com',
   'Fashion and lifestyle e-commerce',
   'connected_mode'
 ) on conflict (tenant_slug) do update set
@@ -30,7 +30,7 @@ insert into public.np_admin_users (
 ) values (
   '22222222-2222-4222-8222-222222222222',
   '11111111-1111-4111-8111-111111111111',
-  'owner@notify.grindctrl.cloud',
+  'owner@sn2studios.co',
   'Store Admin',
   'admin'
 ) on conflict (tenant_id, email) do update set
@@ -48,8 +48,8 @@ insert into public.np_app_settings (
 ) values (
   '11111111-1111-4111-8111-111111111111',
   '{"storeName":"SN2 Studios","storeUrl":"https://sn2studios.co","defaultNotificationIcon":"https://sn2studios.co/cdn/shop/files/store-icon.png","defaultClickUrl":"https://sn2studios.co/collections/all","timezone":"Africa/Cairo"}',
-  '{"vapidPublicKey":"Configured after deployment","vapidPrivateKeyMasked":"••••••••••••••••","vapidSubject":"mailto:admin@grindctrl.cloud","serviceWorkerStatus":"Ready","subscriberCollectionStatus":"Ready"}',
-  '{"baseUrl":"https://n8n.grindctrl.cloud","campaignSenderWebhookStatus":"Ready","lastWorkflowRun":"Not started"}',
+  '{"vapidPublicKey":"Configured after deployment","vapidPrivateKeyMasked":"••••••••••••••••","vapidSubject":"mailto:admin@sn2studios.co","serviceWorkerStatus":"Ready","subscriberCollectionStatus":"Ready"}',
+  '{"baseUrl":"","campaignSenderWebhookStatus":"Ready","lastWorkflowRun":"Not started"}',
   '{"ownerTestMode":true,"liveSendingEnabled":false,"maxSendsPerHour":500,"requireSendConfirmation":true,"allowedTestSubscribers":[]}',
   '{"storeName":"SN2 Studios","storeUrl":"https://sn2studios.co","platform":"Shopify","connectionStatus":"Setup Required","storefrontScript":"Pending Installation","webhooks":"Not Configured","adminApi":"Not Connected","discountCreationStatus":"Shopify Connection Required","ordersWebhookStatus":"Not Configured","pushChannelStatus":"Ready"}',
   '{"enabled":true,"discountPercent":10,"codePrefix":"SN10","expiryHours":48,"popupTitle":"Get 10% off your order","popupBody":"Allow notifications to receive your discount code, private drops, restock alerts, and limited-time offers.","primaryButtonText":"Unlock 10% Off","secondaryButtonText":"Maybe later","successTitle":"Your 10% discount is unlocked","successBody":"Use this code at checkout:","applyDiscountRedirectUrl":"https://sn2studios.co/collections/all","popupDelaySeconds":2,"reShowAfterDismissHours":72}'

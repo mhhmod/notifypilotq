@@ -54,7 +54,7 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div className="px-5 py-5">
-        <BrandLogo subtitle={storeName} />
+        <BrandLogo title={storeName} subtitle={storeName} />
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {navItems.map((item) => {
@@ -161,5 +161,4 @@ export function DashboardShell({
     </div>
   );
 }
-
 

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   const tenant = await getTenant();
   const settings = await getSettingsFromData().catch(() => null);
-  const storeName = settings?.brand.storeName ?? "Your store";
+  const storeName = settings?.brand.storeName ?? "SN2 Studios";
   const clickUrl = settings?.brand.defaultClickUrl || settings?.brand.storeUrl || "https://sn2studios.co";
 
   const testCampaign = {

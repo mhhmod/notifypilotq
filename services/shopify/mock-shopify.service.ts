@@ -11,8 +11,8 @@ import type {
 export class MockShopifyService implements ShopifyService {
   async getShopInfo(): Promise<ShopifyShopInfo> {
     return {
-      name: "GrindCTRL",
-      domain: "grindctrl.cloud",
+      name: "SN2 Studios",
+      domain: "sn2studios.co",
       platform: "Shopify",
       connectionStatus: "Setup Required"
     };

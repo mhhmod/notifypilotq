@@ -8,8 +8,8 @@ import {
 import type { AppSettings } from "@/types/domain";
 import { recordAuditLog } from "@/services/audit/audit.service";
 
-const fallbackStoreName = "GrindCTRL";
-const fallbackStoreUrl = "https://grindctrl.cloud";
+const fallbackStoreName = "SN2 Studios";
+const fallbackStoreUrl = "https://sn2studios.co";
 
 function productionStoreName(value: string | undefined) {
   const name = value?.trim() ?? "";

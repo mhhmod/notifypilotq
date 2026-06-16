@@ -58,7 +58,7 @@ export function maskSecret(value?: string) {
 }
 
 export function absoluteUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://notify.grindctrl.cloud";
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "https://notify.lnnsy.com";
   return new URL(path, base).toString();
 }
 

@@ -19,8 +19,8 @@ const body = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "GrindCTRL",
-    template: "%s | GrindCTRL"
+    default: "SN2 Studios",
+    template: "%s | SN2 Studios"
   },
   description: "Web push campaigns for e-commerce stores"
 };
