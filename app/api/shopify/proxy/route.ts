@@ -66,6 +66,17 @@ export async function GET(request: NextRequest) {
   // Web app manifest enables Add-to-Home-Screen (and iOS 16.4+ web push).
   // Served same-origin via the App Proxy so the storefront can reference it.
   if (request.nextUrl.searchParams.get("asset") === "manifest") {
+    const iconType = /\.png(\?|$)/i.test(iconUrl)
+      ? "image/png"
+      : /\.(jpe?g)(\?|$)/i.test(iconUrl)
+        ? "image/jpeg"
+        : /\.gif(\?|$)/i.test(iconUrl)
+          ? "image/gif"
+          : /\.svg(\?|$)/i.test(iconUrl)
+            ? "image/svg+xml"
+            : /\.webp(\?|$)/i.test(iconUrl)
+              ? "image/webp"
+              : "image/png";
     const manifest = {
       name: storeName,
       short_name: storeName,
@@ -74,12 +85,7 @@ export async function GET(request: NextRequest) {
       display: "standalone",
       background_color: "#ffffff",
       theme_color: "#000000",
-      icons: iconUrl
-        ? [
-            { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
-            { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
-          ]
-        : []
+      icons: iconUrl ? [{ src: iconUrl, sizes: "any", type: iconType, purpose: "any" }] : []
     };
     return new NextResponse(JSON.stringify(manifest), {
       headers: { "Content-Type": "application/manifest+json; charset=utf-8" }
