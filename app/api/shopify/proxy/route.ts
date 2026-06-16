@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
   if (request.nextUrl.searchParams.get("asset") === "service-worker") {
     return new NextResponse(serviceWorkerSource, {
       headers: {
-        "Content-Type": "application/javascript; charset=utf-8",
+        "Content-Type": "text/javascript; charset=utf-8",
         "Service-Worker-Allowed": "/"
       }
     });
