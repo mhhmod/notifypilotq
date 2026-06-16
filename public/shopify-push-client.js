@@ -17,22 +17,57 @@
     primaryButtonText: "Unlock 10% Off",
     secondaryButtonText: "Maybe later",
     successTitle: "Your 10% discount is unlocked",
-    successBody: "Use this code at checkout:"
+    successBody: "Use this code at checkout:",
+    iosTitle: "Get 10% off — add to Home Screen",
+    iosBody: "Add this site to your Home Screen to enable notifications and unlock your discount."
   };
 
   var config = Object.assign({}, DEFAULT_CONFIG, window.NotifyPilotPushConfig || {});
   if (!config.storeUrl) config.storeUrl = window.location.origin;
+
+  /* ── Styles ─────────────────────────────────────────────────────────── */
+
+  var COLORS = {
+    bg: "oklch(0.99 0 0)",
+    surface: "oklch(0.96 0 0)",
+    border: "oklch(0.88 0 0)",
+    ink: "oklch(0.18 0 0)",
+    inkDim: "oklch(0.42 0 0)",
+    primary: "oklch(0.18 0 0)",
+    primaryFg: "oklch(0.99 0 0)",
+    mono: "ui-monospace, SFMono-Regular, Menlo, monospace"
+  };
+
+  var card =
+    "border:1px solid " + COLORS.border + ";" +
+    "border-radius:12px;" +
+    "background:" + COLORS.bg + ";" +
+    "box-shadow:0 2px 8px oklch(0 0 0 / 0.06),0 12px 32px oklch(0 0 0 / 0.08);" +
+    "padding:16px;";
+
+  var btnPrimary =
+    "border:0;border-radius:8px;" +
+    "background:" + COLORS.primary + ";" +
+    "color:" + COLORS.primaryFg + ";" +
+    "font-size:13px;font-weight:700;padding:9px 14px;cursor:pointer;" +
+    "letter-spacing:-0.01em;";
+
+  var btnSecondary =
+    "border:1px solid " + COLORS.border + ";border-radius:8px;" +
+    "background:" + COLORS.bg + ";" +
+    "color:" + COLORS.inkDim + ";" +
+    "font-size:13px;font-weight:600;padding:9px 14px;cursor:pointer;";
+
+  /* ── Helpers ─────────────────────────────────────────────────────────── */
 
   function urlBase64ToUint8Array(base64String) {
     var padding = "=".repeat((4 - (base64String.length % 4)) % 4);
     var base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
     var rawData = window.atob(base64);
     var outputArray = new Uint8Array(rawData.length);
-
     for (var i = 0; i < rawData.length; i += 1) {
       outputArray[i] = rawData.charCodeAt(i);
     }
-
     return outputArray;
   }
 
@@ -52,6 +87,15 @@
     if (/Macintosh|Mac OS X/i.test(ua)) return "macOS";
     if (/Windows/i.test(ua)) return "Windows";
     return "Desktop";
+  }
+
+  function isIosSafari() {
+    var ua = navigator.userAgent;
+    return /iPhone|iPad|iPod/i.test(ua) && /WebKit/i.test(ua) && !/CriOS|FxiOS|OPiOS/i.test(ua);
+  }
+
+  function isStandalone() {
+    return Boolean(window.navigator.standalone);
   }
 
   function apiUrl(path) {
@@ -81,11 +125,18 @@
     return "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
   }
 
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[ch];
+    });
+  }
+
+  /* ── Subscribe flow ───────────────────────────────────────────────────── */
+
   async function syncSubscription() {
     if (!canUsePush() || !config.vapidPublicKey) {
       throw new Error("Push channel is not available.");
     }
-
     var registration = await navigator.serviceWorker.register(config.serviceWorkerPath);
     var subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
@@ -94,7 +145,6 @@
         applicationServerKey: urlBase64ToUint8Array(config.vapidPublicKey)
       });
     }
-
     var response = await fetch(apiUrl("/api/push/subscribe"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -106,11 +156,7 @@
         subscription: subscription.toJSON()
       })
     });
-
-    if (!response.ok) {
-      throw new Error("Subscriber sync failed.");
-    }
-
+    if (!response.ok) throw new Error("Subscriber sync failed.");
     localStorage.setItem(config.registeredKey, "true");
     return response.json();
   }
@@ -122,21 +168,15 @@
     if (!wrapper) return;
 
     wrapper.innerHTML =
-      '<div style="border:1px solid oklch(0.78 0.02 260 / 0.65);border-radius:12px;background:oklch(0.99 0.005 95);box-shadow:0 8px 24px oklch(0.22 0.03 260 / 0.14);padding:16px;">' +
-      '<div style="font-size:15px;font-weight:750;line-height:1.3;color:oklch(0.2 0.02 260);">' +
-      escapeHtml(config.successTitle) +
-      "</div>" +
-      '<div style="margin-top:6px;font-size:13px;line-height:1.45;color:oklch(0.42 0.02 260);">' +
-      escapeHtml(config.successBody) +
-      "</div>" +
-      '<div style="margin-top:10px;border:1px solid oklch(0.86 0.02 260);border-radius:8px;background:oklch(0.96 0.01 95);padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:800;color:oklch(0.22 0.03 260);">' +
-      escapeHtml(code) +
-      "</div>" +
-      '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
-      '<button data-np-copy style="border:0;border-radius:8px;background:oklch(0.53 0.16 276);color:oklch(0.99 0.005 95);font-weight:700;padding:9px 12px;cursor:pointer;">Copy Code</button>' +
-      '<button data-np-apply style="border:1px solid oklch(0.78 0.02 260);border-radius:8px;background:oklch(0.99 0.005 95);color:oklch(0.24 0.03 260);font-weight:700;padding:9px 12px;cursor:pointer;">Apply Discount</button>' +
-      "</div>" +
-      "</div>";
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">' + escapeHtml(config.successTitle) + '</div>' +
+        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.successBody) + '</div>' +
+        '<div style="margin-top:10px;border:1px solid ' + COLORS.border + ';border-radius:8px;background:' + COLORS.surface + ';padding:10px 12px;font-family:' + COLORS.mono + ';font-size:14px;font-weight:800;letter-spacing:0.04em;color:' + COLORS.ink + ';">' + escapeHtml(code) + '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
+          '<button data-np-copy style="' + btnPrimary + '">Copy Code</button>' +
+          '<button data-np-apply style="' + btnSecondary + '">Apply Discount</button>' +
+        '</div>' +
+      '</div>';
 
     wrapper.querySelector("[data-np-copy]").addEventListener("click", function () {
       navigator.clipboard.writeText(code);
@@ -149,20 +189,8 @@
   function showError() {
     var wrapper = document.getElementById("notifypilot-optin");
     if (!wrapper) return;
-    wrapper.querySelector("[data-np-message]").textContent =
-      "Notifications are not available right now. Please try again later.";
-  }
-
-  function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, function (character) {
-      return {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      }[character];
-    });
+    var msg = wrapper.querySelector("[data-np-message]");
+    if (msg) msg.textContent = "Notifications are not available right now. Please try again later.";
   }
 
   async function unlockDiscount() {
@@ -171,7 +199,6 @@
       dismissPopup();
       return;
     }
-
     try {
       var result = await syncSubscription();
       showSuccess(result);
@@ -179,6 +206,36 @@
       showError();
     }
   }
+
+  /* ── iOS Add-to-Home-Screen hint ─────────────────────────────────────── */
+
+  function renderIosHint() {
+    if (hasDismissCooldown()) return;
+    if (document.getElementById("notifypilot-optin")) return;
+
+    var wrapper = document.createElement("div");
+    wrapper.id = "notifypilot-optin";
+    wrapper.style.cssText =
+      "position:fixed;right:18px;bottom:18px;z-index:2147483000;" +
+      "max-width:min(360px,calc(100vw - 32px));" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
+      "color:" + COLORS.ink + ";";
+
+    wrapper.innerHTML =
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">' + escapeHtml(config.iosTitle) + '</div>' +
+        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.iosBody) + '</div>' +
+        '<div style="margin-top:10px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Tap <strong style="color:' + COLORS.ink + ';">Share</strong> then <strong style="color:' + COLORS.ink + ';">Add to Home Screen</strong>, then reopen from your home screen.</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px;">' +
+          '<button data-np-dismiss style="' + btnSecondary + '">Got it</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(wrapper);
+    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", dismissPopup);
+  }
+
+  /* ── Standard popup ───────────────────────────────────────────────────── */
 
   function renderPopup() {
     if (!canUsePush() || !config.vapidPublicKey) return;
@@ -190,32 +247,36 @@
     var wrapper = document.createElement("div");
     wrapper.id = "notifypilot-optin";
     wrapper.style.cssText =
-      "position:fixed;right:18px;bottom:18px;z-index:2147483000;max-width:min(360px,calc(100vw - 32px));font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:oklch(0.2 0.02 260);";
+      "position:fixed;right:18px;bottom:18px;z-index:2147483000;" +
+      "max-width:min(360px,calc(100vw - 32px));" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
+      "color:" + COLORS.ink + ";";
+
     wrapper.innerHTML =
-      '<div style="border:1px solid oklch(0.78 0.02 260 / 0.65);border-radius:12px;background:oklch(0.99 0.005 95);box-shadow:0 8px 24px oklch(0.22 0.03 260 / 0.14);padding:16px;">' +
-      '<div style="font-size:15px;font-weight:750;line-height:1.3;">' +
-      escapeHtml(config.popupTitle) +
-      "</div>" +
-      '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.45;color:oklch(0.42 0.02 260);">' +
-      escapeHtml(config.popupBody) +
-      "</div>" +
-      '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
-      '<button data-np-allow style="border:0;border-radius:8px;background:oklch(0.53 0.16 276);color:oklch(0.99 0.005 95);font-weight:700;padding:9px 12px;cursor:pointer;">' +
-      escapeHtml(config.primaryButtonText) +
-      "</button>" +
-      '<button data-np-dismiss style="border:1px solid oklch(0.78 0.02 260);border-radius:8px;background:oklch(0.99 0.005 95);color:oklch(0.42 0.02 260);font-weight:700;padding:9px 12px;cursor:pointer;">' +
-      escapeHtml(config.secondaryButtonText) +
-      "</button>" +
-      "</div>" +
-      "</div>";
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;">' + escapeHtml(config.popupTitle) + '</div>' +
+        '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.popupBody) + '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
+          '<button data-np-allow style="' + btnPrimary + '">' + escapeHtml(config.primaryButtonText) + '</button>' +
+          '<button data-np-dismiss style="' + btnSecondary + '">' + escapeHtml(config.secondaryButtonText) + '</button>' +
+        '</div>' +
+      '</div>';
 
     document.body.appendChild(wrapper);
     wrapper.querySelector("[data-np-allow]").addEventListener("click", unlockDiscount);
     wrapper.querySelector("[data-np-dismiss]").addEventListener("click", dismissPopup);
   }
 
+  /* ── Boot ─────────────────────────────────────────────────────────────── */
+
   function boot() {
+    if (isIosSafari() && !isStandalone()) {
+      window.setTimeout(renderIosHint, Number(config.popupDelaySeconds || 0) * 1000);
+      return;
+    }
+
     if (!canUsePush()) return;
+
     if (Notification.permission === "granted") {
       syncSubscription().catch(function () {});
       return;
@@ -230,4 +291,3 @@
     boot();
   }
 })();
-
