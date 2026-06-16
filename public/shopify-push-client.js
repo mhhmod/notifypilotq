@@ -126,7 +126,11 @@
 
   function isIosSafari() {
     var ua = navigator.userAgent;
-    return /iPhone|iPad|iPod/i.test(ua) && /WebKit/i.test(ua) && !/CriOS|FxiOS|OPiOS/i.test(ua);
+    return /iPhone|iPad|iPod/i.test(ua) && /WebKit/i.test(ua) && !/CriOS|FxiOS|OPiOS|EdgiOS/i.test(ua);
+  }
+
+  function isIosDevice() {
+    return /iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
   function isStandalone() {
@@ -544,6 +548,14 @@
           renderInfo(
             "One more step on iPhone",
             "Open this store from its Home Screen icon on iOS 16.4 or later to turn on notifications and unlock your discount."
+          );
+        }, delayMs);
+      } else if (isIosDevice()) {
+        // Chrome/Firefox/Edge on iOS cannot do web push (Apple restriction).
+        window.setTimeout(function () {
+          renderInfo(
+            "Open in Safari to get 10% off",
+            "On iPhone, notifications only work in Safari. Open sn2studios.co in Safari, then Add to Home Screen to unlock your discount."
           );
         }, delayMs);
       }
