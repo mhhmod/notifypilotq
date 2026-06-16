@@ -17,17 +17,15 @@ export default function LoginPage() {
 
         <div className="relative max-w-md">
           <h1 className="text-balance font-display text-[2.6rem] font-extrabold leading-[1.04] tracking-tight">
-            Push campaigns, run like operations.
+            Automation and AI, wired into your business.
           </h1>
           <p className="mt-5 max-w-sm text-pretty text-sm leading-7 text-sidebar-foreground/65">
-            Collect browser subscribers and ship discounts, launches, and restock alerts from one
-            calm, production-grade console.
+            Connect your stack, automate the busywork, and let intelligent workflows run growth
+            and operations end to end.
           </p>
         </div>
 
-        <div className="relative text-xs font-semibold tracking-wide text-sidebar-foreground/45">
-          notify.grindctrl.cloud
-        </div>
+        <div aria-hidden />
       </section>
 
       <section className="relative flex min-h-screen items-center justify-center px-5 py-10">

@@ -5,18 +5,16 @@ import { Badge, statusTone } from "@/components/ui/badge";
 import { TableShell, Td, Th } from "@/components/ui/table";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
-import { StatusList } from "@/components/dashboard/status-list";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { formatDateTime, formatNumber, formatPercent } from "@/lib/utils";
 import { listCampaigns } from "@/services/campaigns/campaigns.service";
 import { listEventsFromData } from "@/lib/data/supabase-repository";
-import { getDashboardMetrics, getSystemStatus } from "@/services/status/status.service";
+import { getDashboardMetrics } from "@/services/status/status.service";
 
 export default async function DashboardPage() {
-  const [metrics, campaigns, status, events] = await Promise.all([
+  const [metrics, campaigns, events] = await Promise.all([
     getDashboardMetrics(),
     listCampaigns(),
-    getSystemStatus(),
     listEventsFromData(20)
   ]);
 
@@ -72,20 +70,12 @@ export default async function DashboardPage() {
           </TableShell>
         </Card>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader title="System Status" description="Operational readiness for the current workspace." />
-            <CardContent>
-              <StatusList status={status} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader title="Recent Subscriber Activity" description="Latest campaign and subscriber events." />
-            <CardContent>
-              <RecentActivity events={events} />
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardHeader title="Recent Subscriber Activity" description="Latest campaign and subscriber events." />
+          <CardContent>
+            <RecentActivity events={events} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

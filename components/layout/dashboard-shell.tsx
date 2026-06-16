@@ -79,16 +79,10 @@ function SidebarContent({
         })}
       </nav>
       <div className="border-t border-sidebar-foreground/12 p-4">
-        <div className="rounded-lg bg-sidebar-foreground/6 p-3">
-          <div className="text-xs text-sidebar-foreground/55">Dashboard domain</div>
-          <div className="mt-1 break-all text-sm font-semibold text-sidebar-foreground">
-            notify.grindctrl.cloud
-          </div>
-        </div>
         <button
           type="button"
           onClick={logout}
-          className="mt-3 w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-sidebar-foreground/65 transition hover:bg-sidebar-foreground/8 hover:text-sidebar-foreground"
+          className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-sidebar-foreground/65 transition hover:bg-sidebar-foreground/8 hover:text-sidebar-foreground"
         >
           Sign out
         </button>
