@@ -133,6 +133,10 @@
     return /iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
+
   function isStandalone() {
     return Boolean(window.navigator.standalone);
   }
@@ -377,11 +381,27 @@
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
       "color:" + COLORS.ink + ";";
 
+    var shareIcon =
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + COLORS.ink +
+      '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin:0 1px;">' +
+      '<path d="M12 14V4"/><path d="M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
+    var plusIcon =
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + COLORS.ink +
+      '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin:0 1px;">' +
+      '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>';
+    var stepRow = "display:flex;gap:10px;align-items:flex-start;margin-top:12px;";
+    var numDot =
+      "flex:0 0 auto;width:20px;height:20px;border-radius:999px;background:" + COLORS.primary +
+      ";color:" + COLORS.primaryFg + ";font-size:11px;font-weight:800;display:grid;place-items:center;line-height:1;";
+    var stepText = "font-size:13px;line-height:1.5;color:" + COLORS.ink + ";";
+
     wrapper.innerHTML =
       '<div style="' + card + '">' +
         '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">' + escapeHtml(config.iosTitle) + '</div>' +
-        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.iosBody) + '</div>' +
-        '<div style="margin-top:10px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Tap <strong style="color:' + COLORS.ink + ';">Share</strong> then <strong style="color:' + COLORS.ink + ';">Add to Home Screen</strong>, then reopen from your home screen.</div>' +
+        '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Two quick steps in Safari to unlock your code:</div>' +
+        '<div style="' + stepRow + '"><span style="' + numDot + '">1</span><div style="' + stepText + '">Tap <strong>Share</strong> ' + shareIcon + ' at the bottom of Safari</div></div>' +
+        '<div style="' + stepRow + '"><span style="' + numDot + '">2</span><div style="' + stepText + '">Choose <strong>Add to Home Screen</strong> ' + plusIcon + '</div></div>' +
+        '<div style="margin-top:12px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Then open the store from your new icon — your 10% code appears automatically.</div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;">' +
           '<button data-np-dismiss style="' + btnSecondary + '">Got it</button>' +
         '</div>' +
@@ -556,6 +576,14 @@
           renderInfo(
             "Open in Safari to get 10% off",
             "On iPhone, notifications only work in Safari. Open sn2studios.co in Safari, then Add to Home Screen to unlock your discount."
+          );
+        }, delayMs);
+      } else if (isAndroid()) {
+        // In-app browsers (Instagram, Facebook, TikTok…) can't do web push.
+        window.setTimeout(function () {
+          renderInfo(
+            "Open in Chrome to get 10% off",
+            "Notifications work in Chrome on Android. Tap the menu (⋮) and choose “Open in Chrome”, then allow notifications to unlock your discount."
           );
         }, delayMs);
       }
