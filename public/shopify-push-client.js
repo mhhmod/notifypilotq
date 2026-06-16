@@ -282,16 +282,38 @@
         subscription: subscription.toJSON()
       })
     });
-    if (!response.ok) throw new Error("Subscriber sync failed.");
+    var result = await response.json().catch(function () {
+      return null;
+    });
+    if (!response.ok) {
+      throw new Error(result && result.error ? result.error : "We could not finish the subscription sync.");
+    }
     localStorage.setItem(config.registeredKey, "true");
-    return response.json();
+    return result;
+  }
+
+  function showAlreadySubscribed() {
+    var wrapper = document.getElementById("notifypilot-optin");
+    if (!wrapper) return;
+
+    wrapper.innerHTML =
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">You are already on the list</div>' +
+        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Your early-access alerts are active. We will send private drops, restocks, and limited-time offers here.</div>' +
+        '<button data-np-close style="margin-top:14px;' + btnSecondary + '">Got it</button>' +
+      '</div>';
+
+    wrapper.querySelector("[data-np-close]").addEventListener("click", dismissPopup);
   }
 
   function showSuccess(result) {
     if (!result || !result.discountCode) {
-      showError(result && result.discountAlreadyClaimed
-        ? "This discount has already been claimed from this browser or network."
-        : "Your notification signup was saved, but a discount code is not available right now.");
+      if (result && result.discountAlreadyClaimed) {
+        localStorage.setItem(config.registeredKey, "true");
+        showAlreadySubscribed();
+        return;
+      }
+      showError("Your notification signup was saved. A discount code is not available right now.");
       return;
     }
     var code = result.discountCode || "";
@@ -334,7 +356,11 @@
       var detail = error && (error.name || error.message)
         ? (error.name || "") + (error.message ? ": " + error.message : "")
         : "Unknown error";
-      showError("Sign-up failed — " + detail);
+      if (detail.toLowerCase().indexOf("already") >= 0 || detail.toLowerCase().indexOf("claim limit") >= 0) {
+        showAlreadySubscribed();
+        return;
+      }
+      showError("We could not finish that just now. Please try again in a moment.");
     }
   }
 
