@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,9 +21,6 @@ interface FormState {
   iconUrl: string;
   audience: AudienceType;
   sendMode: SendMode;
-  date: string;
-  time: string;
-  timezone: string;
 }
 
 const initialState: FormState = {
@@ -34,13 +31,10 @@ const initialState: FormState = {
   imageUrl: "",
   iconUrl: "",
   audience: "Selected test subscribers",
-  sendMode: "Save as draft",
-  date: "",
-  time: "",
-  timezone: "Africa/Cairo"
+  sendMode: "Save as draft"
 };
 
-const steps = ["Content", "Audience", "Schedule", "Review"];
+const steps = ["Content", "Audience", "Send", "Review"];
 
 export function CreateCampaignWizard({
   activeSubscriberCount,
@@ -67,11 +61,6 @@ export function CreateCampaignWizard({
   const estimatedRecipients = form.audience === "All active subscribers" ? activeSubscriberCount : testSubscriberCount;
   const liveAllowed = liveSendingEnabled || form.audience === "Selected test subscribers";
 
-  const scheduledAt = useMemo(() => {
-    if (form.sendMode !== "Schedule for later" || !form.date || !form.time) return undefined;
-    return new Date(`${form.date}T${form.time}:00`).toISOString();
-  }, [form.date, form.sendMode, form.time]);
-
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => ({ ...current, [key]: "" }));
@@ -90,17 +79,8 @@ export function CreateCampaignWizard({
     return Object.keys(nextErrors).length === 0;
   }
 
-  function validateSchedule() {
-    if (form.sendMode === "Schedule for later" && (!form.date || !form.time)) {
-      setErrors({ schedule: "Choose a date and time for scheduled sending." });
-      return false;
-    }
-    return true;
-  }
-
   function next() {
     if (step === 0 && !validateContent()) return;
-    if (step === 2 && !validateSchedule()) return;
     setStep((current) => Math.min(current + 1, steps.length - 1));
   }
 
@@ -114,13 +94,12 @@ export function CreateCampaignWizard({
       iconUrl: form.iconUrl || undefined,
       audience: form.audience,
       sendMode: form.sendMode,
-      scheduledAt,
       ...extra
     };
   }
 
   async function submit(action: "draft" | "test" | "live", confirmation?: string) {
-    if (!validateContent() || !validateSchedule()) return;
+    if (!validateContent()) return;
     setSubmitting(action);
     setMessage("");
 
@@ -297,7 +276,7 @@ export function CreateCampaignWizard({
 
           {step === 2 ? (
             <div className="grid gap-4">
-              {(["Save as draft", "Send now", "Schedule for later"] as SendMode[]).map((mode) => (
+              {(["Save as draft", "Send now"] as SendMode[]).map((mode) => (
                 <label key={mode} className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-4 hover:bg-muted/50">
                   <input
                     type="radio"
@@ -308,36 +287,6 @@ export function CreateCampaignWizard({
                   <span className="text-sm font-bold text-foreground">{mode}</span>
                 </label>
               ))}
-              {form.sendMode === "Schedule for later" ? (
-                <div className="grid gap-4 rounded-lg border border-border bg-muted/40 p-4 md:grid-cols-3">
-                  <Field label="Date" htmlFor="date">
-                    <input
-                      id="date"
-                      type="date"
-                      className={inputClass(Boolean(errors.schedule))}
-                      value={form.date}
-                      onChange={(event) => update("date", event.target.value)}
-                    />
-                  </Field>
-                  <Field label="Time" htmlFor="time">
-                    <input
-                      id="time"
-                      type="time"
-                      className={inputClass(Boolean(errors.schedule))}
-                      value={form.time}
-                      onChange={(event) => update("time", event.target.value)}
-                    />
-                  </Field>
-                  <Field label="Timezone" htmlFor="timezone" error={errors.schedule}>
-                    <input
-                      id="timezone"
-                      className={inputClass(Boolean(errors.schedule))}
-                      value={form.timezone}
-                      onChange={(event) => update("timezone", event.target.value)}
-                    />
-                  </Field>
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -351,7 +300,6 @@ export function CreateCampaignWizard({
                 <ReviewRow label="Notification body" value={form.notificationBody} wide />
                 <ReviewRow label="Click URL" value={form.clickUrl} wide />
                 <ReviewRow label="Send mode" value={form.sendMode} />
-                <ReviewRow label="Timezone" value={form.timezone} />
               </div>
               <NotificationPreview
                 title={form.notificationTitle}
