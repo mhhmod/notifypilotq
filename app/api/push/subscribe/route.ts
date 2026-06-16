@@ -4,6 +4,8 @@ import { registerSubscriber } from "@/services/subscribers/subscribers.service";
 import { issueOptInDiscount, getDiscountUrl } from "@/services/discounts/discounts.service";
 import { getTenant } from "@/lib/data/supabase-repository";
 import { serverEnv } from "@/lib/config/env";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { getClientIpHash, getDiscountClaimFingerprint } from "@/lib/security/request-fingerprint";
 
 function allowedOrigins() {
   const origins = new Set<string>();
@@ -65,17 +67,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Store context not recognized." }, { status: 400, headers: cors });
   }
 
+  const ipHash = getClientIpHash(request);
+  const claimFingerprint = getDiscountClaimFingerprint(request, expectedStoreUrl);
+  const ipLimit = checkRateLimit(`push-subscribe-ip:${ipHash}`, 12, 60 * 60 * 1000);
+  const claimLimit = checkRateLimit(`push-subscribe-claim:${claimFingerprint}`, 4, 60 * 60 * 1000);
+  if (!ipLimit.allowed || !claimLimit.allowed) {
+    return NextResponse.json(
+      { error: "Discount claim limit reached. Please try again later." },
+      { status: 429, headers: cors }
+    );
+  }
+
   const subscriber = await registerSubscriber(parsed.data);
-  const discount = await issueOptInDiscount(subscriber.id);
-  const discountUrl = discount ? await getDiscountUrl(discount.code) : undefined;
+  const result = await issueOptInDiscount(subscriber.id, { claimFingerprint, claimIpHash: ipHash });
+  const discountUrl = result.discount ? await getDiscountUrl(result.discount.code) : undefined;
   return NextResponse.json(
     {
       ok: true,
       subscriberId: subscriber.id,
-      discountCode: discount?.code,
-      discountPercent: discount?.discountPercent,
-      expiresAt: discount?.expiresAt,
-      discountUrl
+      discountCode: result.discount?.code,
+      discountPercent: result.discount?.discountPercent,
+      expiresAt: result.discount?.expiresAt,
+      discountUrl,
+      discountAlreadyClaimed: result.reason === "already_claimed",
+      discountUnavailableReason: result.reason
     },
     { headers: cors }
   );

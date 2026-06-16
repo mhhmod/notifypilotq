@@ -15,6 +15,8 @@ import { getShopifyInstallation } from "@/services/shopify/shopify-installation.
 import { RealShopifyService } from "@/services/shopify/real-shopify.service";
 import type { DiscountCodeRecord, DiscountCodeStatus } from "@/types/domain";
 
+type DiscountIssueReason = "issued" | "existing_active" | "already_claimed" | "disabled";
+
 function makeCode(prefix: string, subscriberId: string) {
   const digest = createHash("sha256").update(`${subscriberId}:${Date.now()}`).digest("hex").slice(0, 8).toUpperCase();
   return `${prefix}-${digest}`;
@@ -32,6 +34,8 @@ function fromRow(row: {
   expires_at: string;
   used_at?: string | null;
   used_order_id?: string | null;
+  claim_fingerprint?: string | null;
+  claim_ip_hash?: string | null;
   created_at: string;
   updated_at: string;
 }): DiscountCodeRecord {
@@ -47,6 +51,8 @@ function fromRow(row: {
     expiresAt: row.expires_at,
     usedAt: row.used_at ?? undefined,
     usedOrderId: row.used_order_id ?? undefined,
+    claimFingerprint: row.claim_fingerprint ?? undefined,
+    claimIpHash: row.claim_ip_hash ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -65,17 +71,29 @@ export async function getDiscountUrl(code: string) {
   return `${baseUrl.replace(/\/$/, "")}/discount/${encodeURIComponent(code)}?redirect=${redirectTarget}`;
 }
 
-export async function issueOptInDiscount(subscriberId: string) {
-  const existing = canUseProductionData()
-    ? (await listDiscountCodesFromData()).find(
-        (discount) => discount.subscriberId === subscriberId && discount.status === "issued"
-      )
-    : getDiscountForSubscriber(subscriberId);
-  if (existing) return existing;
+export async function issueOptInDiscount(
+  subscriberId: string,
+  claim?: { claimFingerprint?: string; claimIpHash?: string }
+): Promise<{ discount: DiscountCodeRecord | null; reason: DiscountIssueReason }> {
+  const discounts = canUseProductionData() ? await listDiscountCodesFromData() : getStore().discountCodes;
+  const existing = discounts.find(
+    (discount) => discount.subscriberId === subscriberId && discount.status === "issued"
+  );
+  if (existing) return { discount: existing, reason: "existing_active" };
+
+  const existingClaim = claim?.claimFingerprint
+    ? discounts.find((discount) => discount.claimFingerprint === claim.claimFingerprint)
+    : undefined;
+  if (existingClaim) {
+    return {
+      discount: existingClaim.status === "issued" ? existingClaim : null,
+      reason: "already_claimed"
+    };
+  }
 
   const tenant = await getTenant();
   const settings = (await getSettingsFromData()).optInDiscount;
-  if (!settings.enabled) return null;
+  if (!settings.enabled) return { discount: null, reason: "disabled" };
 
   const now = new Date();
   const expiresAt = new Date(now.getTime() + settings.expiryHours * 60 * 60 * 1000).toISOString();
@@ -109,6 +127,8 @@ export async function issueOptInDiscount(subscriberId: string) {
     status: "issued",
     usageLimit: 1,
     expiresAt,
+    claimFingerprint: claim?.claimFingerprint,
+    claimIpHash: claim?.claimIpHash,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString()
   };
@@ -148,7 +168,7 @@ export async function issueOptInDiscount(subscriberId: string) {
     metadata: { subscriberId, code }
   });
 
-  return discount;
+  return { discount, reason: "issued" };
 }
 
 export async function markDiscountUsed(code: string, usedOrderId: string) {

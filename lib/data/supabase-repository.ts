@@ -104,6 +104,8 @@ type DiscountRow = {
   expires_at: string;
   used_at?: string | null;
   used_order_id?: string | null;
+  claim_fingerprint?: string | null;
+  claim_ip_hash?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -325,6 +327,8 @@ function discountFromRow(row: DiscountRow): DiscountCodeRecord {
     expiresAt: row.expires_at,
     usedAt: row.used_at ?? undefined,
     usedOrderId: row.used_order_id ?? undefined,
+    claimFingerprint: row.claim_fingerprint ?? undefined,
+    claimIpHash: row.claim_ip_hash ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -343,6 +347,8 @@ export function discountToRow(discount: DiscountCodeRecord) {
     expires_at: discount.expiresAt,
     used_at: discount.usedAt ?? null,
     used_order_id: discount.usedOrderId ?? null,
+    claim_fingerprint: discount.claimFingerprint ?? null,
+    claim_ip_hash: discount.claimIpHash ?? null,
     created_at: discount.createdAt,
     updated_at: discount.updatedAt
   };

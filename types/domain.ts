@@ -67,6 +67,8 @@ export interface DiscountCodeRecord {
   expiresAt: string;
   usedAt?: string;
   usedOrderId?: string;
+  claimFingerprint?: string;
+  claimIpHash?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -288,6 +288,12 @@
   }
 
   function showSuccess(result) {
+    if (!result || !result.discountCode) {
+      showError(result && result.discountAlreadyClaimed
+        ? "This discount has already been claimed from this browser or network."
+        : "Your notification signup was saved, but a discount code is not available right now.");
+      return;
+    }
     var code = result.discountCode || "";
     var discountUrl = result.discountUrl || config.storeUrl;
     var wrapper = document.getElementById("notifypilot-optin");
