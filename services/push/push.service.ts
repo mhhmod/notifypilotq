@@ -63,7 +63,7 @@ export async function sendPushToSubscriber(
       subscriber.status = "Inactive";
       if (canUseProductionData()) {
         await getSupabaseAdminOrThrow()
-          .from("push_subscribers")
+          .from("np_push_subscribers")
           .update({ status: "Inactive", updated_at: new Date().toISOString() })
           .eq("tenant_id", tenant.id)
           .eq("id", subscriber.id);

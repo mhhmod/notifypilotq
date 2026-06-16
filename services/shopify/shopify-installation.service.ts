@@ -34,7 +34,7 @@ export async function getShopifyInstallation(shopDomain?: string) {
   const tenant = await getTenant();
   const supabase = createSupabaseAdminClient();
   if (canUseProductionData() && supabase) {
-    let query = supabase.from("shopify_installations").select("*").eq("tenant_id", tenant.id);
+    let query = supabase.from("np_shopify_installations").select("*").eq("tenant_id", tenant.id);
     if (normalized) query = query.eq("shop_domain", normalized);
     const { data, error } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
     if (error) throw new Error(`Load Shopify installation failed: ${error.message}`);
@@ -48,7 +48,7 @@ export async function getShopifyInstallation(shopDomain?: string) {
 
   if (!supabase) return null;
 
-  let query = supabase.from("shopify_installations").select("*").eq("tenant_id", tenant.id);
+  let query = supabase.from("np_shopify_installations").select("*").eq("tenant_id", tenant.id);
   if (normalized) query = query.eq("shop_domain", normalized);
   const { data, error } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
   if (error || !data) return null;
@@ -86,7 +86,7 @@ export async function saveShopifyInstallation(input: {
 
   const supabase = createSupabaseAdminClient();
   if (supabase) {
-    await supabase.from("shopify_installations").upsert(
+    await supabase.from("np_shopify_installations").upsert(
       {
         id: installation.id,
         tenant_id: installation.tenantId,

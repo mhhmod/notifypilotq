@@ -414,7 +414,7 @@ function integrationStatusFromRow(row: IntegrationStatusRow): IntegrationStatus 
 export async function getTenant() {
   if (!canUseProductionData()) return getStore().tenant;
   const supabase = getSupabaseAdminOrThrow();
-  const { data, error } = await supabase.from("tenants").select("*").order("created_at").limit(1).maybeSingle();
+  const { data, error } = await supabase.from("np_tenants").select("*").order("created_at").limit(1).maybeSingle();
   assertNoError(error, "Load tenant failed");
   return tenantFromRow(requireData(data, "No tenant is configured."));
 }
@@ -424,7 +424,7 @@ export async function listSubscribersFromData() {
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
   const { data, error } = await supabase
-    .from("push_subscribers")
+    .from("np_push_subscribers")
     .select("*")
     .eq("tenant_id", tenant.id)
     .order("subscribed_at", { ascending: false });
@@ -437,7 +437,7 @@ export async function listDiscountCodesFromData() {
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
   const { data, error } = await supabase
-    .from("discount_codes")
+    .from("np_discount_codes")
     .select("*")
     .eq("tenant_id", tenant.id)
     .order("created_at", { ascending: false });
@@ -450,7 +450,7 @@ export async function listCampaignsFromData() {
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
   const { data, error } = await supabase
-    .from("push_campaigns")
+    .from("np_push_campaigns")
     .select("*")
     .eq("tenant_id", tenant.id)
     .order("created_at", { ascending: false });
@@ -474,10 +474,10 @@ export async function getCampaignBundleFromData(campaignId: string) {
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
   const [campaignResult, recipientsResult, eventsResult, subscribersResult] = await Promise.all([
-    supabase.from("push_campaigns").select("*").eq("tenant_id", tenant.id).eq("id", campaignId).maybeSingle(),
-    supabase.from("push_campaign_recipients").select("*").eq("tenant_id", tenant.id).eq("campaign_id", campaignId),
-    supabase.from("push_events").select("*").eq("tenant_id", tenant.id).eq("campaign_id", campaignId).order("created_at", { ascending: false }),
-    supabase.from("push_subscribers").select("*").eq("tenant_id", tenant.id)
+    supabase.from("np_push_campaigns").select("*").eq("tenant_id", tenant.id).eq("id", campaignId).maybeSingle(),
+    supabase.from("np_push_campaign_recipients").select("*").eq("tenant_id", tenant.id).eq("campaign_id", campaignId),
+    supabase.from("np_push_events").select("*").eq("tenant_id", tenant.id).eq("campaign_id", campaignId).order("created_at", { ascending: false }),
+    supabase.from("np_push_subscribers").select("*").eq("tenant_id", tenant.id)
   ]);
 
   assertNoError(campaignResult.error, "Load campaign failed");
@@ -498,7 +498,7 @@ export async function getSettingsFromData() {
   if (!canUseProductionData()) return getStore().appSettings;
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase.from("app_settings").select("*").eq("tenant_id", tenant.id).maybeSingle();
+  const { data, error } = await supabase.from("np_app_settings").select("*").eq("tenant_id", tenant.id).maybeSingle();
   assertNoError(error, "Load settings failed");
   return settingsFromRow(requireData(data, "Application settings are not configured."));
 }
@@ -507,7 +507,7 @@ export async function getIntegrationStatusFromData() {
   if (!canUseProductionData()) return getStore().integrationStatus;
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase.from("integration_status").select("*").eq("tenant_id", tenant.id).maybeSingle();
+  const { data, error } = await supabase.from("np_integration_status").select("*").eq("tenant_id", tenant.id).maybeSingle();
   assertNoError(error, "Load integration status failed");
   return integrationStatusFromRow(requireData(data, "Integration status is not configured."));
 }
@@ -517,7 +517,7 @@ export async function listEventsFromData(limit = 20) {
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
   const { data, error } = await supabase
-    .from("push_events")
+    .from("np_push_events")
     .select("*")
     .eq("tenant_id", tenant.id)
     .order("created_at", { ascending: false })
@@ -530,22 +530,22 @@ export async function listClicksFromData() {
   if (!canUseProductionData()) return [...getStore().pushClicks];
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase.from("push_clicks").select("*").eq("tenant_id", tenant.id);
+  const { data, error } = await supabase.from("np_push_clicks").select("*").eq("tenant_id", tenant.id);
   assertNoError(error, "Load clicks failed");
   return (data ?? []).map(clickFromRow);
 }
 
 export async function insertEvent(supabase: SupabaseAdminClient, event: PushEvent) {
-  const { error } = await supabase.from("push_events").insert(eventToRow(event));
+  const { error } = await supabase.from("np_push_events").insert(eventToRow(event));
   assertNoError(error, "Insert event failed");
 }
 
 export async function insertActivity(supabase: SupabaseAdminClient, activity: SubscriberActivity) {
-  const { error } = await supabase.from("subscriber_activity").insert(activityToRow(activity));
+  const { error } = await supabase.from("np_subscriber_activity").insert(activityToRow(activity));
   assertNoError(error, "Insert subscriber activity failed");
 }
 
 export async function insertAuditLog(supabase: SupabaseAdminClient, log: AuditLog) {
-  const { error } = await supabase.from("audit_logs").insert(auditToRow(log));
+  const { error } = await supabase.from("np_audit_logs").insert(auditToRow(log));
   assertNoError(error, "Insert audit log failed");
 }

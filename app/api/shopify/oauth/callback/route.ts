@@ -69,14 +69,14 @@ export async function GET(request: NextRequest) {
     settings.storeIntegration.webhooks = ordersWebhook?.status ?? "Ready";
     settings.storeIntegration.ordersWebhookStatus = ordersWebhook?.status ?? "Ready";
     await supabase
-      .from("app_settings")
+      .from("np_app_settings")
       .update({
         store_integration_settings: settings.storeIntegration,
         updated_at: new Date().toISOString()
       })
       .eq("tenant_id", tenant.id);
     await supabase
-      .from("integration_status")
+      .from("np_integration_status")
       .update({
         shopify_connection_status: "Connected",
         updated_at: new Date().toISOString()

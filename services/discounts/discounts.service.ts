@@ -115,7 +115,7 @@ export async function issueOptInDiscount(subscriberId: string) {
 
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
-    const { error } = await supabase.from("discount_codes").upsert(discountToRow(discount), { onConflict: "tenant_id,code" });
+    const { error } = await supabase.from("np_discount_codes").upsert(discountToRow(discount), { onConflict: "tenant_id,code" });
     if (error) throw new Error(`Save discount failed: ${error.message}`);
     await insertActivity(supabase, {
       id: randomUUID(),
@@ -158,7 +158,7 @@ export async function markDiscountUsed(code: string, usedOrderId: string) {
   if (supabase) {
     const tenant = await getTenant();
     const { data } = await supabase
-      .from("discount_codes")
+      .from("np_discount_codes")
       .select("*")
       .eq("tenant_id", tenant.id)
       .ilike("code", normalizedCode)
@@ -172,7 +172,7 @@ export async function markDiscountUsed(code: string, usedOrderId: string) {
     target.updatedAt = now;
 
     const { error } = await supabase
-      .from("discount_codes")
+      .from("np_discount_codes")
       .update({
         status: "used",
         used_at: now,

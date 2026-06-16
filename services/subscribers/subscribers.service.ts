@@ -40,7 +40,7 @@ export async function deactivateSubscriber(subscriberId: string, actorEmail: str
     const tenant = await getTenant();
     const now = new Date().toISOString();
     const { data, error } = await supabase
-      .from("push_subscribers")
+      .from("np_push_subscribers")
       .update({ status: "Inactive", last_seen_at: now, updated_at: now })
       .eq("tenant_id", tenant.id)
       .eq("id", subscriberId)
@@ -120,7 +120,7 @@ export async function registerSubscriber(input: {
     const tenant = await getTenant();
     const now = new Date().toISOString();
     const { data: existing, error: existingError } = await supabase
-      .from("push_subscribers")
+      .from("np_push_subscribers")
       .select("*")
       .eq("tenant_id", tenant.id)
       .eq("endpoint_hash", endpointHash)
@@ -130,7 +130,7 @@ export async function registerSubscriber(input: {
 
     if (existing) {
       const { data, error } = await supabase
-        .from("push_subscribers")
+        .from("np_push_subscribers")
         .update({
           status: "Active",
           last_seen_at: now,
@@ -162,7 +162,7 @@ export async function registerSubscriber(input: {
     }
 
     const { count, error: countError } = await supabase
-      .from("push_subscribers")
+      .from("np_push_subscribers")
       .select("*", { count: "exact", head: true })
       .eq("tenant_id", tenant.id);
     if (countError) throw new Error(`Count subscribers failed: ${countError.message}`);
@@ -183,7 +183,7 @@ export async function registerSubscriber(input: {
     };
 
     const { error } = await supabase
-      .from("push_subscribers")
+      .from("np_push_subscribers")
       .upsert(subscriberToRow(subscriber), { onConflict: "tenant_id,endpoint_hash" });
     if (error) throw new Error(`Save subscriber failed: ${error.message}`);
 
@@ -272,7 +272,7 @@ export async function unsubscribePush(endpoint: string) {
     const tenant = await getTenant();
     const now = new Date().toISOString();
     const { data, error } = await supabase
-      .from("push_subscribers")
+      .from("np_push_subscribers")
       .update({ status: "Inactive", last_seen_at: now, updated_at: now })
       .eq("tenant_id", tenant.id)
       .eq("endpoint_hash", endpointHash)

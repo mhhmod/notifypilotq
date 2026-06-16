@@ -83,10 +83,10 @@ export async function updateSettings(input: Partial<AppSettings>, actorEmail: st
 
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
-    const { error } = await supabase.from("app_settings").upsert(settingsToRow(settings), { onConflict: "tenant_id" });
+    const { error } = await supabase.from("np_app_settings").upsert(settingsToRow(settings), { onConflict: "tenant_id" });
     if (error) throw new Error(`Settings update failed: ${error.message}`);
     await supabase
-      .from("integration_status")
+      .from("np_integration_status")
       .update({
         live_sending_status: settings.safety.liveSendingEnabled ? "Enabled" : "Disabled",
         updated_at: new Date().toISOString()

@@ -81,7 +81,7 @@ export async function createCampaign(input: CampaignInput, actorEmail: string, s
 
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
-    const { error } = await supabase.from("push_campaigns").insert(campaignToRow(campaign));
+    const { error } = await supabase.from("np_push_campaigns").insert(campaignToRow(campaign));
     if (error) throw new Error(`Create campaign failed: ${error.message}`);
     await insertEvent(supabase, event);
   } else {
@@ -141,7 +141,7 @@ export async function cancelCampaign(campaignId: string, actorEmail: string) {
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
     const { error } = await supabase
-      .from("push_campaigns")
+      .from("np_push_campaigns")
       .update({ status: "Cancelled", updated_at: new Date().toISOString() })
       .eq("tenant_id", campaign.tenantId)
       .eq("id", campaignId);
@@ -172,7 +172,7 @@ export async function deleteDraftCampaign(campaignId: string, actorEmail: string
 
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
-    const { error } = await supabase.from("push_campaigns").delete().eq("tenant_id", campaign.tenantId).eq("id", campaignId);
+    const { error } = await supabase.from("np_push_campaigns").delete().eq("tenant_id", campaign.tenantId).eq("id", campaignId);
     if (error) throw new Error(`Delete campaign failed: ${error.message}`);
   } else {
     const store = getStore();
@@ -206,7 +206,7 @@ async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipie
   if (canUseProductionData() && recipients.length > 0) {
     const supabase = getSupabaseAdminOrThrow();
     const { error } = await supabase
-      .from("push_campaign_recipients")
+      .from("np_push_campaign_recipients")
       .upsert(recipients.map((recipient) => recipientToRow(recipient, campaign.tenantId)), {
         onConflict: "campaign_id,subscriber_id"
       });
@@ -252,13 +252,13 @@ async function completeDelivery(
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
     const { error: recipientError } = await supabase
-      .from("push_campaign_recipients")
+      .from("np_push_campaign_recipients")
       .upsert(recipients.map((recipient) => recipientToRow(recipient, campaign.tenantId)), {
         onConflict: "campaign_id,subscriber_id"
       });
     if (recipientError) throw new Error(`Update recipients failed: ${recipientError.message}`);
     const { error: campaignError } = await supabase
-      .from("push_campaigns")
+      .from("np_push_campaigns")
       .update(campaignToRow(campaign))
       .eq("tenant_id", campaign.tenantId)
       .eq("id", campaign.id);
@@ -422,18 +422,18 @@ export async function recordCampaignClick(input: { campaignId: string; subscribe
 
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
-    const { error: clickError } = await supabase.from("push_clicks").insert(clickToRow(click));
+    const { error: clickError } = await supabase.from("np_push_clicks").insert(clickToRow(click));
     if (clickError) throw new Error(`Record click failed: ${clickError.message}`);
     if (recipient) {
       const { error: recipientError } = await supabase
-        .from("push_campaign_recipients")
+        .from("np_push_campaign_recipients")
         .update({ clicked: true })
         .eq("campaign_id", recipient.campaignId)
         .eq("subscriber_id", recipient.subscriberId);
       if (recipientError) throw new Error(`Update click recipient failed: ${recipientError.message}`);
     }
     const { error: campaignError } = await supabase
-      .from("push_campaigns")
+      .from("np_push_campaigns")
       .update({
         click_count: campaign.clickCount,
         click_rate: campaign.clickRate,
