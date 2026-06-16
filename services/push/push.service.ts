@@ -42,6 +42,12 @@ export async function sendPushToSubscriber(
     serverEnv.vapidPrivateKey!
   );
 
+  const trackingUrl =
+    `${publicEnv.appUrl.replace(/\/$/, "")}/api/push/click` +
+    `?campaignId=${encodeURIComponent(campaign.id)}` +
+    `&subscriberId=${encodeURIComponent(subscriber.id)}` +
+    `&clickUrl=${encodeURIComponent(campaign.clickUrl)}`;
+
   try {
     await webpush.sendNotification(
       subscriber.subscription as webpush.PushSubscription,
@@ -52,7 +58,8 @@ export async function sendPushToSubscriber(
         image: campaign.imageUrl,
         clickUrl: campaign.clickUrl,
         campaignId: campaign.id,
-        subscriberId: subscriber.id
+        subscriberId: subscriber.id,
+        trackingUrl
       })
     );
 

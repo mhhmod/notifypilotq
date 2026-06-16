@@ -35,6 +35,16 @@ function SidebarContent({
   const pathname = usePathname();
   const router = useRouter();
 
+  // Only the most specific matching nav item is active, so /dashboard/campaigns/new
+  // highlights "Create Campaign" alone, not "Campaigns" too.
+  const activeHref = navItems
+    .filter((item) =>
+      item.href === "/dashboard"
+        ? pathname === "/dashboard"
+        : pathname === item.href || pathname.startsWith(`${item.href}/`)
+    )
+    .reduce((best, item) => (item.href.length > best.length ? item.href : best), "");
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
@@ -48,8 +58,7 @@ function SidebarContent({
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {navItems.map((item) => {
-          const active =
-            item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href);
+          const active = item.href === activeHref;
           const Icon = item.icon;
           return (
             <Link

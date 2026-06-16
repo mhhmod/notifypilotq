@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { publicEnv, serverEnv } from "@/lib/config/env";
 import { getSettingsFromData, getTenant } from "@/lib/data/supabase-repository";
 
-const serviceWorkerSource = `
+function buildServiceWorker(iconUrl: string) {
+  return `
 self.addEventListener("install", function() {
   self.skipWaiting();
 });
@@ -17,8 +18,10 @@ self.addEventListener("push", function(event) {
   var title = payload.title || "Store update";
   var options = {
     body: payload.body || "",
-    icon: payload.icon || "/icon-192.png",
+    icon: payload.icon || ${JSON.stringify(iconUrl)} || undefined,
     image: payload.image,
+    badge: ${JSON.stringify(iconUrl)} || undefined,
+    requireInteraction: true,
     data: {
       clickUrl: payload.clickUrl || payload.url || "/",
       trackingUrl: payload.trackingUrl
@@ -39,16 +42,10 @@ self.addEventListener("notificationclick", function(event) {
   event.waitUntil(Promise.all(tasks));
 });
 `;
+}
 
 export async function GET(request: NextRequest) {
-  if (request.nextUrl.searchParams.get("asset") === "service-worker") {
-    return new NextResponse(serviceWorkerSource, {
-      headers: {
-        "Content-Type": "text/javascript; charset=utf-8",
-        "Service-Worker-Allowed": "/"
-      }
-    });
-  }
+  const asset = request.nextUrl.searchParams.get("asset");
 
   const tenant = await getTenant();
   let storeName = tenant.tenantSlug;
@@ -63,9 +60,17 @@ export async function GET(request: NextRequest) {
     /* fall back to tenant defaults */
   }
 
+  if (asset === "service-worker") {
+    return new NextResponse(buildServiceWorker(iconUrl), {
+      headers: {
+        "Content-Type": "text/javascript; charset=utf-8",
+        "Service-Worker-Allowed": "/"
+      }
+    });
+  }
+
   // Web app manifest enables Add-to-Home-Screen (and iOS 16.4+ web push).
-  // Served same-origin via the App Proxy so the storefront can reference it.
-  if (request.nextUrl.searchParams.get("asset") === "manifest") {
+  if (asset === "manifest") {
     const iconType = /\.png(\?|$)/i.test(iconUrl)
       ? "image/png"
       : /\.(jpe?g)(\?|$)/i.test(iconUrl)

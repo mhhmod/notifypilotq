@@ -18,8 +18,14 @@ export function CampaignActions({
 
   async function post(action: "duplicate" | "cancel" | "delete") {
     setLoading(action);
-    await fetch(`/api/campaigns/${campaignId}/${action}`, { method: "POST" });
+    const response = await fetch(`/api/campaigns/${campaignId}/${action}`, { method: "POST" });
+    const data = (await response.json().catch(() => null)) as { campaign?: { id: string } } | null;
     setLoading(null);
+    if (action === "duplicate" && data?.campaign?.id) {
+      router.push(`/dashboard/campaigns/${data.campaign.id}`);
+      router.refresh();
+      return;
+    }
     router.refresh();
   }
 
