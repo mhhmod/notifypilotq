@@ -164,11 +164,34 @@
 
   /* ── Subscribe flow ───────────────────────────────────────────────────── */
 
+  function waitForActiveWorker(registration) {
+    if (registration.active) return Promise.resolve(registration);
+    return new Promise(function (resolve) {
+      var worker = registration.installing || registration.waiting;
+      if (!worker) {
+        // No worker handle yet; poll until one activates.
+        var poll = setInterval(function () {
+          if (registration.active) {
+            clearInterval(poll);
+            resolve(registration);
+          }
+        }, 100);
+        return;
+      }
+      worker.addEventListener("statechange", function () {
+        if (worker.state === "activated") resolve(registration);
+      });
+    });
+  }
+
   async function syncSubscription() {
     if (!canUsePush() || !config.vapidPublicKey) {
       throw new Error("Push channel is not available.");
     }
     var registration = await navigator.serviceWorker.register(config.serviceWorkerPath);
+    // pushManager.subscribe needs an ACTIVE worker; register() can resolve
+    // before activation (common on Android), which silently fails the subscribe.
+    await waitForActiveWorker(registration);
     var subscription = await registration.pushManager.getSubscription();
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
@@ -217,15 +240,22 @@
     });
   }
 
-  function showError() {
+  function showError(message) {
     var wrapper = document.getElementById("notifypilot-optin");
     if (!wrapper) return;
     var msg = wrapper.querySelector("[data-np-message]");
-    if (msg) msg.textContent = "Notifications are not available right now. Please try again later.";
+    if (msg) msg.textContent = message || "Notifications are not available right now. Please try again later.";
   }
 
   async function unlockDiscount() {
-    var permission = await Notification.requestPermission();
+    var permission;
+    try {
+      permission = await Notification.requestPermission();
+    } catch (error) {
+      console.error("[NotifyPilot] requestPermission failed", error);
+      showError("Your browser blocked the notification prompt.");
+      return;
+    }
     if (permission !== "granted") {
       dismissPopup();
       return;
@@ -233,8 +263,9 @@
     try {
       var result = await syncSubscription();
       showSuccess(result);
-    } catch (_) {
-      showError();
+    } catch (error) {
+      console.error("[NotifyPilot] subscribe failed", error);
+      showError("Could not finish sign-up on this device. Please try again.");
     }
   }
 

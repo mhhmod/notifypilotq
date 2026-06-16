@@ -3,6 +3,14 @@ import { publicEnv, serverEnv } from "@/lib/config/env";
 import { getTenant } from "@/lib/data/supabase-repository";
 
 const serviceWorkerSource = `
+self.addEventListener("install", function() {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", function(event) {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", function(event) {
   var payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch (_) { payload = {}; }
