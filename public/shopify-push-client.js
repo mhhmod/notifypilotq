@@ -5,6 +5,7 @@
     tenantSlug: "store",
     storeUrl: "",
     apiBaseUrl: "https://notify.grindctrl.cloud",
+    configUrl: "/apps/notifypilot",
     vapidPublicKey: "",
     serviceWorkerPath: "/apps/notifypilot?asset=service-worker",
     popupDismissedKey: "notifypilot_push_prompt_dismissed_until",
@@ -22,8 +23,35 @@
     iosBody: "Add this site to your Home Screen to enable notifications and unlock your discount."
   };
 
-  var config = Object.assign({}, DEFAULT_CONFIG, window.NotifyPilotPushConfig || {});
+  var themeConfig = window.NotifyPilotPushConfig || {};
+  var config = Object.assign({}, DEFAULT_CONFIG, themeConfig);
   if (!config.storeUrl) config.storeUrl = window.location.origin;
+
+  /* Fetch live config from the App Proxy (same-origin) so the storefront never
+     has to hardcode the VAPID key or tenant slug. Theme-provided values still
+     win over the proxy response. Falls back silently to defaults on error. */
+  async function loadRemoteConfig() {
+    if (!config.configUrl) return;
+    try {
+      var response = await fetch(config.configUrl, {
+        headers: { Accept: "application/json" },
+        credentials: "omit"
+      });
+      if (!response.ok) return;
+      var remote = await response.json();
+      if (!remote || remote.platform !== "NotifyPilot") return;
+      var mapped = {};
+      if (remote.vapidPublicKey) mapped.vapidPublicKey = remote.vapidPublicKey;
+      if (remote.tenantSlug) mapped.tenantSlug = remote.tenantSlug;
+      if (remote.storeUrl) mapped.storeUrl = remote.storeUrl;
+      if (remote.appUrl) mapped.apiBaseUrl = remote.appUrl;
+      if (remote.serviceWorkerPath) mapped.serviceWorkerPath = remote.serviceWorkerPath;
+      config = Object.assign({}, DEFAULT_CONFIG, mapped, themeConfig);
+      if (!config.storeUrl) config.storeUrl = window.location.origin;
+    } catch (_) {
+      /* keep existing config */
+    }
+  }
 
   /* ── Styles ─────────────────────────────────────────────────────────── */
 
@@ -269,7 +297,9 @@
 
   /* ── Boot ─────────────────────────────────────────────────────────────── */
 
-  function boot() {
+  async function boot() {
+    await loadRemoteConfig();
+
     if (isIosSafari() && !isStandalone()) {
       window.setTimeout(renderIosHint, Number(config.popupDelaySeconds || 0) * 1000);
       return;
