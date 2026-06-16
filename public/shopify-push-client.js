@@ -167,21 +167,46 @@
   function waitForActiveWorker(registration) {
     if (registration.active) return Promise.resolve(registration);
     return new Promise(function (resolve) {
-      var worker = registration.installing || registration.waiting;
-      if (!worker) {
-        // No worker handle yet; poll until one activates.
-        var poll = setInterval(function () {
-          if (registration.active) {
-            clearInterval(poll);
-            resolve(registration);
-          }
-        }, 100);
-        return;
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        resolve(registration);
       }
-      worker.addEventListener("statechange", function () {
-        if (worker.state === "activated") resolve(registration);
-      });
+      // Safety timeout: never hang the sign-up flow.
+      setTimeout(finish, 10000);
+      var poll = setInterval(function () {
+        if (registration.active) {
+          clearInterval(poll);
+          finish();
+        }
+      }, 100);
+      var worker = registration.installing || registration.waiting;
+      if (worker) {
+        worker.addEventListener("statechange", function () {
+          if (worker.state === "activated") {
+            clearInterval(poll);
+            finish();
+          }
+        });
+      }
     });
+  }
+
+  function subscriptionKeyMatches(subscription, vapidKey) {
+    try {
+      var existing = subscription.options && subscription.options.applicationServerKey;
+      if (!existing) return false;
+      var a = new Uint8Array(existing);
+      var b = urlBase64ToUint8Array(vapidKey);
+      if (a.length !== b.length) return false;
+      for (var i = 0; i < a.length; i += 1) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   async function syncSubscription() {
@@ -193,6 +218,16 @@
     // before activation (common on Android), which silently fails the subscribe.
     await waitForActiveWorker(registration);
     var subscription = await registration.pushManager.getSubscription();
+    // A subscription left over from a previous (e.g. mistyped) VAPID key cannot
+    // receive our pushes and makes re-subscribe throw InvalidStateError. Drop it.
+    if (subscription && !subscriptionKeyMatches(subscription, config.vapidPublicKey)) {
+      try {
+        await subscription.unsubscribe();
+      } catch (_) {
+        /* ignore */
+      }
+      subscription = null;
+    }
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -265,7 +300,10 @@
       showSuccess(result);
     } catch (error) {
       console.error("[NotifyPilot] subscribe failed", error);
-      showError("Could not finish sign-up on this device. Please try again.");
+      var detail = error && (error.name || error.message)
+        ? (error.name || "") + (error.message ? ": " + error.message : "")
+        : "Unknown error";
+      showError("Sign-up failed — " + detail);
     }
   }
 
