@@ -241,18 +241,30 @@ export function CreateCampaignWizard({
                 />
               </Field>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Optional image URL" htmlFor="imageUrl" error={errors.imageUrl}>
+                <Field
+                  label="Image URL (optional)"
+                  htmlFor="imageUrl"
+                  helper="Large banner shown on Android and desktop. ~720×360 PNG or JPG."
+                  error={errors.imageUrl}
+                >
                   <input
                     id="imageUrl"
                     className={inputClass(Boolean(errors.imageUrl))}
+                    placeholder="https://your-store.com/banner.jpg"
                     value={form.imageUrl}
                     onChange={(event) => update("imageUrl", event.target.value)}
                   />
                 </Field>
-                <Field label="Optional icon URL" htmlFor="iconUrl" error={errors.iconUrl}>
+                <Field
+                  label="Icon URL (optional)"
+                  htmlFor="iconUrl"
+                  helper="Small badge icon next to the text. ~192×192 PNG."
+                  error={errors.iconUrl}
+                >
                   <input
                     id="iconUrl"
                     className={inputClass(Boolean(errors.iconUrl))}
+                    placeholder="https://your-store.com/icon.png"
                     value={form.iconUrl}
                     onChange={(event) => update("iconUrl", event.target.value)}
                   />

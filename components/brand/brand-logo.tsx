@@ -27,7 +27,11 @@ export function BrandLogo({
       <GrindCtrlMark
         className={cn(
           "shrink-0",
-          login ? "h-14 w-14 text-foreground" : compact ? "h-8 w-8" : "h-9 w-9"
+          login
+            ? "h-14 w-14 text-foreground"
+            : compact
+              ? "h-8 w-8 text-sidebar-foreground"
+              : "h-9 w-9 text-sidebar-foreground"
         )}
       />
 

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Loader2, LockKeyhole } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/ui/field";
 
@@ -38,15 +38,10 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="rounded-lg border border-border bg-card p-6 shadow-card">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-md bg-accent/10 text-accent">
-          <LockKeyhole className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-base font-bold text-foreground">Sign in</h2>
-          <p className="text-sm text-muted-foreground">Access the GrindCTRL dashboard</p>
-        </div>
+    <form onSubmit={submit}>
+      <div className="mb-7">
+        <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Sign in</h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">Welcome back to your dashboard.</p>
       </div>
 
       <div className="space-y-4">
@@ -76,7 +71,7 @@ export function LoginForm() {
 
       <Button type="submit" className="mt-6 w-full" disabled={loading}>
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        Login
+        Sign in
       </Button>
     </form>
   );

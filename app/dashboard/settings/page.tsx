@@ -1,7 +1,6 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge, statusTone } from "@/components/ui/badge";
-import { IntegrationChecklist } from "@/components/settings/integration-checklist";
 import { getSettings } from "@/services/settings/settings.service";
 
 function Row({
@@ -36,35 +35,14 @@ export default async function SettingsPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>
-          <CardHeader title="Store Integration" description="Shopify setup and storefront installation status." />
+          <CardHeader title="Store Integration" description="Your connected Shopify store." />
           <CardContent>
             <dl>
               <Row label="Store Name" value={settings.storeIntegration.storeName} />
               <Row label="Store URL" value={settings.storeIntegration.storeUrl} />
               <Row label="Platform" value={settings.storeIntegration.platform} />
               <Row label="Connection Status" value={settings.storeIntegration.connectionStatus} badge />
-              <Row label="Storefront Script" value={settings.storeIntegration.storefrontScript} badge />
-              <Row label="Webhooks" value={settings.storeIntegration.webhooks} badge />
-              <Row label="Admin API" value={settings.storeIntegration.adminApi} badge />
-              <Row
-                label="Discount Creation"
-                value={settings.storeIntegration.discountCreationStatus ?? "Shopify Connection Required"}
-                badge
-              />
-              <Row
-                label="Orders Webhook"
-                value={settings.storeIntegration.ordersWebhookStatus ?? "Not Configured"}
-                badge
-              />
-              <Row
-                label="Push Channel"
-                value={settings.storeIntegration.pushChannelStatus ?? "Ready"}
-                badge
-              />
             </dl>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <IntegrationChecklist />
-            </div>
           </CardContent>
         </Card>
 

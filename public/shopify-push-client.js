@@ -8,6 +8,8 @@
     configUrl: "/apps/notifypilot",
     vapidPublicKey: "",
     serviceWorkerPath: "/apps/notifypilot?asset=service-worker",
+    manifestPath: "/apps/notifypilot?asset=manifest",
+    iconUrl: "",
     popupDismissedKey: "notifypilot_push_prompt_dismissed_until",
     registeredKey: "notifypilot_push_registered",
     popupDelaySeconds: 2,
@@ -46,6 +48,8 @@
       if (remote.storeUrl) mapped.storeUrl = remote.storeUrl;
       if (remote.appUrl) mapped.apiBaseUrl = remote.appUrl;
       if (remote.serviceWorkerPath) mapped.serviceWorkerPath = remote.serviceWorkerPath;
+      if (remote.manifestPath) mapped.manifestPath = remote.manifestPath;
+      if (remote.iconUrl) mapped.iconUrl = remote.iconUrl;
       // Proxy values are server-owned and authoritative (VAPID key, slug, URLs):
       // they override theme-provided config, which can drift or be mistyped.
       // Theme keeps control only of fields the proxy does not return (UX copy).
@@ -415,10 +419,50 @@
     wrapper.querySelector("[data-np-dismiss]").addEventListener("click", dismissPopup);
   }
 
+  /* ── iOS / PWA install tags ───────────────────────────────────────────── */
+
+  function addMetaOnce(name, content) {
+    if (document.querySelector('meta[name="' + name + '"]')) return;
+    var meta = document.createElement("meta");
+    meta.name = name;
+    meta.content = content;
+    meta.setAttribute("data-np", "1");
+    (document.head || document.documentElement).appendChild(meta);
+  }
+
+  // Inject a web app manifest + Apple meta so the site is installable to the
+  // Home Screen, which is the prerequisite for web push on iOS 16.4+.
+  function injectPwaTags() {
+    try {
+      var head = document.head || document.getElementsByTagName("head")[0];
+      if (!head) return;
+      if (config.manifestPath && !document.querySelector('link[rel="manifest"]')) {
+        var manifest = document.createElement("link");
+        manifest.rel = "manifest";
+        manifest.href = config.manifestPath;
+        manifest.setAttribute("data-np", "1");
+        head.appendChild(manifest);
+      }
+      addMetaOnce("apple-mobile-web-app-capable", "yes");
+      addMetaOnce("mobile-web-app-capable", "yes");
+      addMetaOnce("apple-mobile-web-app-status-bar-style", "default");
+      if (config.iconUrl && !document.querySelector('link[rel="apple-touch-icon"]')) {
+        var icon = document.createElement("link");
+        icon.rel = "apple-touch-icon";
+        icon.href = config.iconUrl;
+        icon.setAttribute("data-np", "1");
+        head.appendChild(icon);
+      }
+    } catch (_) {
+      /* non-fatal */
+    }
+  }
+
   /* ── Boot ─────────────────────────────────────────────────────────────── */
 
   async function boot() {
     await loadRemoteConfig();
+    injectPwaTags();
 
     if (isIosSafari() && !isStandalone()) {
       window.setTimeout(renderIosHint, Number(config.popupDelaySeconds || 0) * 1000);

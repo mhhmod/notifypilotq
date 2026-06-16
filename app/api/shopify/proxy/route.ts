@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { publicEnv, serverEnv } from "@/lib/config/env";
-import { getTenant } from "@/lib/data/supabase-repository";
+import { getSettingsFromData, getTenant } from "@/lib/data/supabase-repository";
 
 const serviceWorkerSource = `
 self.addEventListener("install", function() {
@@ -51,14 +51,52 @@ export async function GET(request: NextRequest) {
   }
 
   const tenant = await getTenant();
+  let storeName = tenant.tenantSlug;
+  let storeUrl = serverEnv.shopifyPublicStoreUrl || tenant.storeUrl;
+  let iconUrl = "";
+  try {
+    const settings = await getSettingsFromData();
+    storeName = settings.brand.storeName || storeName;
+    storeUrl = serverEnv.shopifyPublicStoreUrl || settings.brand.storeUrl || tenant.storeUrl;
+    iconUrl = settings.brand.defaultNotificationIcon || "";
+  } catch {
+    /* fall back to tenant defaults */
+  }
+
+  // Web app manifest enables Add-to-Home-Screen (and iOS 16.4+ web push).
+  // Served same-origin via the App Proxy so the storefront can reference it.
+  if (request.nextUrl.searchParams.get("asset") === "manifest") {
+    const manifest = {
+      name: storeName,
+      short_name: storeName,
+      start_url: "/",
+      scope: "/",
+      display: "standalone",
+      background_color: "#ffffff",
+      theme_color: "#000000",
+      icons: iconUrl
+        ? [
+            { src: iconUrl, sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: iconUrl, sizes: "512x512", type: "image/png", purpose: "any maskable" }
+          ]
+        : []
+    };
+    return new NextResponse(JSON.stringify(manifest), {
+      headers: { "Content-Type": "application/manifest+json; charset=utf-8" }
+    });
+  }
+
   return NextResponse.json({
     ok: true,
     platform: "NotifyPilot",
     tenantSlug: tenant.tenantSlug,
-    storeUrl: serverEnv.shopifyPublicStoreUrl || tenant.storeUrl,
+    storeName,
+    storeUrl,
+    iconUrl,
     appUrl: publicEnv.appUrl,
     subscribeUrl: `${publicEnv.appUrl}/api/push/subscribe`,
     serviceWorkerPath: `${serverEnv.shopifyAppProxyPath}?asset=service-worker`,
+    manifestPath: `${serverEnv.shopifyAppProxyPath}?asset=manifest`,
     vapidPublicKey: publicEnv.vapidPublicKey ?? ""
   });
 }
