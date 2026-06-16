@@ -34,6 +34,15 @@ function hashEndpoint(endpoint: string) {
   return `endpoint_${createHash("sha256").update(endpoint).digest("hex").slice(0, 24)}`;
 }
 
+function cleanLabel(value: string | undefined, fallback?: string) {
+  const cleaned = value?.replace(/\s+/g, " ").trim();
+  return cleaned ? cleaned.slice(0, 120) : fallback;
+}
+
+function shouldReplaceGeneratedVisitor(value: string) {
+  return /^Visitor( WEB)?[-\s]\d+$/i.test(value) || value === "Not provided";
+}
+
 export async function deactivateSubscriber(subscriberId: string, actorEmail: string) {
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
@@ -109,6 +118,7 @@ export async function deactivateSubscriber(subscriberId: string, actorEmail: str
 
 export async function registerSubscriber(input: {
   subscription: PushSubscriptionPayload;
+  displayName?: string;
   browser?: string;
   device?: string;
   country?: string;
@@ -129,10 +139,18 @@ export async function registerSubscriber(input: {
     if (existingError) throw new Error(`Load subscriber failed: ${existingError.message}`);
 
     if (existing) {
+      const nextDisplayName = cleanLabel(input.displayName);
+      const nextCountry = cleanLabel(input.country);
       const { data, error } = await supabase
         .from("np_push_subscribers")
         .update({
           status: "Active",
+          ...(nextDisplayName && shouldReplaceGeneratedVisitor(existing.display_name)
+            ? { display_name: nextDisplayName }
+            : {}),
+          ...(nextCountry && shouldReplaceGeneratedVisitor(existing.country)
+            ? { country: nextCountry }
+            : {}),
           last_seen_at: now,
           subscription_payload: input.subscription,
           updated_at: now
@@ -170,10 +188,11 @@ export async function registerSubscriber(input: {
     const subscriber: PushSubscriber = {
       id: randomUUID(),
       tenantId: tenant.id,
-      displayName: `Visitor ${String((count ?? 0) + 1001).padStart(4, "0")}`,
+      displayName:
+        cleanLabel(input.displayName) ?? `Visitor ${String((count ?? 0) + 1001).padStart(4, "0")}`,
       browser: input.browser ?? "Chrome",
       device: input.device ?? "Browser",
-      country: input.country ?? "Not provided",
+      country: cleanLabel(input.country, "Not provided") ?? "Not provided",
       status: "Active",
       subscribedAt: now,
       lastSeenAt: now,
@@ -216,19 +235,27 @@ export async function registerSubscriber(input: {
   const store = getStore();
   const existing = store.subscribers.find((subscriber) => subscriber.endpointHash === endpointHash);
   if (existing) {
+    const nextDisplayName = cleanLabel(input.displayName);
+    const nextCountry = cleanLabel(input.country);
     existing.status = "Active";
     existing.lastSeenAt = new Date().toISOString();
     existing.subscription = input.subscription;
+    if (nextDisplayName && shouldReplaceGeneratedVisitor(existing.displayName)) {
+      existing.displayName = nextDisplayName;
+    }
+    if (nextCountry && shouldReplaceGeneratedVisitor(existing.country)) {
+      existing.country = nextCountry;
+    }
     return existing;
   }
 
   const subscriber: PushSubscriber = {
     id: randomUUID(),
     tenantId: store.tenant.id,
-    displayName: `Visitor WEB-${1000 + store.subscribers.length + 1}`,
+    displayName: cleanLabel(input.displayName) ?? `Visitor WEB-${1000 + store.subscribers.length + 1}`,
     browser: input.browser ?? "Chrome",
     device: input.device ?? "Browser",
-    country: input.country ?? "Not provided",
+    country: cleanLabel(input.country, "Not provided") ?? "Not provided",
     status: "Active",
     subscribedAt: new Date().toISOString(),
     lastSeenAt: new Date().toISOString(),
@@ -304,4 +331,3 @@ export async function unsubscribePush(endpoint: string) {
   subscriber.lastSeenAt = new Date().toISOString();
   return subscriber;
 }
-

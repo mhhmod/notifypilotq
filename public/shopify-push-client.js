@@ -10,6 +10,9 @@
     serviceWorkerPath: "/apps/notifypilot?asset=service-worker",
     manifestPath: "/apps/notifypilot?asset=manifest",
     iconUrl: "",
+    customerName: "",
+    customerEmail: "",
+    country: "",
     popupDismissedKey: "notifypilot_push_prompt_dismissed_until",
     registeredKey: "notifypilot_push_registered",
     popupDelaySeconds: 2,
@@ -122,6 +125,14 @@
     if (/Macintosh|Mac OS X/i.test(ua)) return "macOS";
     if (/Windows/i.test(ua)) return "Windows";
     return "Desktop";
+  }
+
+  function cleanOptional(value) {
+    return typeof value === "string" ? value.trim() : "";
+  }
+
+  function shopperDisplayName() {
+    return cleanOptional(config.customerName) || cleanOptional(config.customerEmail);
   }
 
   function isIosSafari() {
@@ -277,8 +288,10 @@
       body: JSON.stringify({
         tenantSlug: config.tenantSlug,
         storeUrl: config.storeUrl,
+        displayName: shopperDisplayName(),
         browser: detectBrowser(),
         device: detectDevice(),
+        country: cleanOptional(config.country),
         subscription: subscription.toJSON()
       })
     });

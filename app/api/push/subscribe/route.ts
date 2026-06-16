@@ -38,6 +38,7 @@ export async function OPTIONS(request: NextRequest) {
 const schema = z.object({
   tenantSlug: z.string().optional(),
   storeUrl: z.string().optional(),
+  displayName: z.string().max(120).optional(),
   browser: z.string().optional(),
   device: z.string().optional(),
   country: z.string().optional(),
@@ -52,6 +53,15 @@ const schema = z.object({
       .optional()
   })
 });
+
+function headerCountry(request: NextRequest) {
+  return (
+    request.headers.get("cf-ipcountry") ||
+    request.headers.get("x-vercel-ip-country") ||
+    request.headers.get("x-country-code") ||
+    ""
+  ).trim();
+}
 
 export async function POST(request: NextRequest) {
   const cors = corsHeaders(request);
@@ -78,7 +88,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const subscriber = await registerSubscriber(parsed.data);
+  const subscriber = await registerSubscriber({
+    ...parsed.data,
+    country: parsed.data.country?.trim() || headerCountry(request) || undefined
+  });
   const result = await issueOptInDiscount(subscriber.id, { claimFingerprint, claimIpHash: ipHash });
   const discountUrl = result.discount ? await getDiscountUrl(result.discount.code) : undefined;
   return NextResponse.json(
