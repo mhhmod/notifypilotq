@@ -46,7 +46,10 @@
       if (remote.storeUrl) mapped.storeUrl = remote.storeUrl;
       if (remote.appUrl) mapped.apiBaseUrl = remote.appUrl;
       if (remote.serviceWorkerPath) mapped.serviceWorkerPath = remote.serviceWorkerPath;
-      config = Object.assign({}, DEFAULT_CONFIG, mapped, themeConfig);
+      // Proxy values are server-owned and authoritative (VAPID key, slug, URLs):
+      // they override theme-provided config, which can drift or be mistyped.
+      // Theme keeps control only of fields the proxy does not return (UX copy).
+      config = Object.assign({}, DEFAULT_CONFIG, themeConfig, mapped);
       if (!config.storeUrl) config.storeUrl = window.location.origin;
     } catch (_) {
       /* keep existing config */
