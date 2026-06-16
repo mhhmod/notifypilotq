@@ -86,7 +86,8 @@ export async function exchangeShopifyCodeForToken(shop: string, code: string) {
   });
 
   if (!response.ok) {
-    throw new Error(`Shopify OAuth exchange failed with ${response.status}.`);
+    const body = await response.text().catch(() => "");
+    throw new Error(`Shopify OAuth exchange failed with ${response.status}: ${body}`);
   }
 
   return response.json() as Promise<{
