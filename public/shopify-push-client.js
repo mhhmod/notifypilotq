@@ -282,6 +282,19 @@
     if (msg) msg.textContent = message || "Notifications are not available right now. Please try again later.";
   }
 
+  async function completeUnlock() {
+    try {
+      var result = await syncSubscription();
+      showSuccess(result);
+    } catch (error) {
+      console.error("[NotifyPilot] subscribe failed", error);
+      var detail = error && (error.name || error.message)
+        ? (error.name || "") + (error.message ? ": " + error.message : "")
+        : "Unknown error";
+      showError("Sign-up failed — " + detail);
+    }
+  }
+
   async function unlockDiscount() {
     var permission;
     try {
@@ -295,16 +308,26 @@
       dismissPopup();
       return;
     }
-    try {
-      var result = await syncSubscription();
-      showSuccess(result);
-    } catch (error) {
-      console.error("[NotifyPilot] subscribe failed", error);
-      var detail = error && (error.name || error.message)
-        ? (error.name || "") + (error.message ? ": " + error.message : "")
-        : "Unknown error";
-      showError("Sign-up failed — " + detail);
-    }
+    await completeUnlock();
+  }
+
+  // Shown when permission is already granted but registration never finished
+  // (e.g. an earlier failed attempt), so the shopper still sees their code.
+  function renderProcessing() {
+    if (document.getElementById("notifypilot-optin")) return;
+    var wrapper = document.createElement("div");
+    wrapper.id = "notifypilot-optin";
+    wrapper.style.cssText =
+      "position:fixed;right:18px;bottom:18px;z-index:2147483000;" +
+      "max-width:min(360px,calc(100vw - 32px));" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
+      "color:" + COLORS.ink + ";";
+    wrapper.innerHTML =
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;">' + escapeHtml(config.popupTitle) + '</div>' +
+        '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Unlocking your discount…</div>' +
+      '</div>';
+    document.body.appendChild(wrapper);
   }
 
   /* ── iOS Add-to-Home-Screen hint ─────────────────────────────────────── */
@@ -380,7 +403,15 @@
     if (!canUsePush()) return;
 
     if (Notification.permission === "granted") {
-      syncSubscription().catch(function () {});
+      if (localStorage.getItem(config.registeredKey) === "true") {
+        // Already registered on this device: re-sync quietly.
+        syncSubscription().catch(function () {});
+      } else {
+        // Permission granted but never completed (e.g. earlier failed attempt):
+        // finish now and show the code.
+        renderProcessing();
+        completeUnlock();
+      }
       return;
     }
 
