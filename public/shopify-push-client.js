@@ -458,33 +458,119 @@
     }
   }
 
+  /* ── Info + debug cards ───────────────────────────────────────────────── */
+
+  function makeCard(innerHtml) {
+    if (document.getElementById("notifypilot-optin")) return null;
+    var wrapper = document.createElement("div");
+    wrapper.id = "notifypilot-optin";
+    wrapper.style.cssText =
+      "position:fixed;right:18px;bottom:18px;z-index:2147483000;" +
+      "max-width:min(360px,calc(100vw - 32px));" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
+      "color:" + COLORS.ink + ";";
+    wrapper.innerHTML = innerHtml;
+    document.body.appendChild(wrapper);
+    return wrapper;
+  }
+
+  function renderInfo(title, message) {
+    var wrapper = makeCard(
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;">' + escapeHtml(title) + '</div>' +
+        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(message) + '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px;"><button data-np-dismiss style="' + btnSecondary + '">Got it</button></div>' +
+      '</div>'
+    );
+    if (wrapper) wrapper.querySelector("[data-np-dismiss]").addEventListener("click", removePopup);
+  }
+
+  function renderDebug() {
+    var info = {
+      iosSafari: isIosSafari(),
+      standalone: isStandalone(),
+      canUsePush: canUsePush(),
+      permission: (window.Notification && Notification.permission) || "n/a",
+      Notification: "Notification" in window,
+      serviceWorker: "serviceWorker" in navigator,
+      PushManager: "PushManager" in window,
+      vapid: config.vapidPublicKey ? config.vapidPublicKey.slice(0, 12) + "…" : "(none)",
+      ua: navigator.userAgent
+    };
+    var rows = Object.keys(info).map(function (k) {
+      return (
+        '<div style="display:flex;gap:8px;justify-content:space-between;border-bottom:1px solid ' + COLORS.border + ';padding:5px 0;font-size:12px;">' +
+        '<span style="color:' + COLORS.inkDim + ';">' + escapeHtml(k) + '</span>' +
+        '<span style="font-family:' + COLORS.mono + ';font-weight:700;text-align:right;word-break:break-all;max-width:62%;">' + escapeHtml(String(info[k])) + '</span></div>'
+      );
+    }).join("");
+    var wrapper = makeCard(
+      '<div style="' + card + '"><div style="font-size:14px;font-weight:800;margin-bottom:6px;">NotifyPilot debug</div>' +
+      rows +
+      '<div style="margin-top:12px;"><button data-np-dismiss style="' + btnSecondary + '">Close</button></div></div>'
+    );
+    if (wrapper) wrapper.querySelector("[data-np-dismiss]").addEventListener("click", removePopup);
+  }
+
   /* ── Boot ─────────────────────────────────────────────────────────────── */
 
   async function boot() {
     await loadRemoteConfig();
     injectPwaTags();
 
-    if (isIosSafari() && !isStandalone()) {
-      window.setTimeout(renderIosHint, Number(config.popupDelaySeconds || 0) * 1000);
+    var delayMs = Number(config.popupDelaySeconds || 0) * 1000;
+
+    var debug = false;
+    try { debug = /[?&]np-debug=1/.test(window.location.search); } catch (_) {}
+    if (debug) {
+      window.setTimeout(renderDebug, 300);
       return;
     }
 
-    if (!canUsePush()) return;
+    var iosSafari = isIosSafari();
+    var standalone = isStandalone();
+
+    // iPhone Safari, not yet installed → guide to Home Screen.
+    if (iosSafari && !standalone) {
+      window.setTimeout(renderIosHint, delayMs);
+      return;
+    }
+
+    // Push channel unavailable. On iOS this means iOS < 16.4 or the page was
+    // opened outside the installed app — tell the shopper instead of going silent.
+    if (!canUsePush()) {
+      if (iosSafari) {
+        window.setTimeout(function () {
+          renderInfo(
+            "One more step on iPhone",
+            "Open this store from its Home Screen icon on iOS 16.4 or later to turn on notifications and unlock your discount."
+          );
+        }, delayMs);
+      }
+      return;
+    }
+
+    if (Notification.permission === "denied") {
+      window.setTimeout(function () {
+        renderInfo(
+          "Notifications are turned off",
+          "Enable notifications for this site in your settings, then reopen to unlock your discount."
+        );
+      }, delayMs);
+      return;
+    }
 
     if (Notification.permission === "granted") {
       if (localStorage.getItem(config.registeredKey) === "true") {
-        // Already registered on this device: re-sync quietly.
         syncSubscription().catch(function () {});
       } else {
-        // Permission granted but never completed (e.g. earlier failed attempt):
-        // finish now and show the code.
         renderProcessing();
         completeUnlock();
       }
       return;
     }
 
-    window.setTimeout(renderPopup, Number(config.popupDelaySeconds || 0) * 1000);
+    window.setTimeout(renderPopup, delayMs);
   }
 
   if (document.readyState === "loading") {
