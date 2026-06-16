@@ -1,11 +1,12 @@
-import { getStore, newId } from "@/lib/data/store";
+import { randomUUID } from "crypto";
+import { getStore } from "@/lib/data/store";
 import { canUseProductionData, getSupabaseAdminOrThrow, insertAuditLog } from "@/lib/data/supabase-repository";
 import type { AuditLog } from "@/types/domain";
 
 export function recordAuditLog(input: Omit<AuditLog, "id" | "tenantId" | "createdAt">) {
   const store = getStore();
   const auditLog: AuditLog = {
-    id: newId("audit"),
+    id: randomUUID(),
     tenantId: store.tenant.id,
     createdAt: new Date().toISOString(),
     ...input
