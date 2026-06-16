@@ -238,6 +238,43 @@
     });
   }
 
+  function fetchWithTimeout(url, options, timeoutMs) {
+    if (!window.AbortController) return fetch(url, options);
+    var controller = new AbortController();
+    var timer = window.setTimeout(function () {
+      controller.abort();
+    }, timeoutMs);
+    return fetch(url, Object.assign({}, options, { signal: controller.signal })).finally(function () {
+      window.clearTimeout(timer);
+    });
+  }
+
+  function ensureProgressStyle() {
+    if (document.getElementById("notifypilot-progress-style")) return;
+    var style = document.createElement("style");
+    style.id = "notifypilot-progress-style";
+    style.textContent =
+      "@keyframes notifypilot-spin{to{transform:rotate(360deg)}}" +
+      "@media (prefers-reduced-motion:reduce){[data-np-spinner]{animation:none!important}}";
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function showProgress(message) {
+    var wrapper = document.getElementById("notifypilot-optin");
+    if (!wrapper) return;
+    ensureProgressStyle();
+    wrapper.innerHTML =
+      '<div style="' + card + '">' +
+        '<div style="display:flex;gap:12px;align-items:flex-start;">' +
+          '<div data-np-spinner style="margin-top:2px;width:18px;height:18px;border-radius:999px;border:2px solid ' + COLORS.border + ';border-top-color:' + COLORS.ink + ';animation:notifypilot-spin 0.8s linear infinite;flex:0 0 auto;"></div>' +
+          '<div>' +
+            '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">Preparing your access</div>' +
+            '<div data-np-message style="margin-top:5px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(message || "Securing your notification signup...") + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
   // "AbortError: Registration failed - push service error" is frequently a
   // transient failure to reach Google's FCM endpoint; retry with backoff.
   async function subscribeWithRetry(registration, attempts) {
@@ -282,7 +319,8 @@
     if (!subscription) {
       subscription = await subscribeWithRetry(registration, 3);
     }
-    var response = await fetch(apiUrl("/api/push/subscribe"), {
+    showProgress("Saving your notification signup and preparing your code...");
+    var response = await fetchWithTimeout(apiUrl("/api/push/subscribe"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -294,7 +332,7 @@
         country: cleanOptional(config.country),
         subscription: subscription.toJSON()
       })
-    });
+    }, 25000);
     var result = await response.json().catch(function () {
       return null;
     });
@@ -356,12 +394,22 @@
   function showError(message) {
     var wrapper = document.getElementById("notifypilot-optin");
     if (!wrapper) return;
-    var msg = wrapper.querySelector("[data-np-message]");
-    if (msg) msg.textContent = message || "Notifications are not available right now. Please try again later.";
+    wrapper.innerHTML =
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">Almost there</div>' +
+        '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(message || "Notifications are not available right now. Please try again later.") + '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
+          '<button data-np-retry style="' + btnPrimary + '">Try again</button>' +
+          '<button data-np-dismiss style="' + btnSecondary + '">Maybe later</button>' +
+        '</div>' +
+      '</div>';
+    wrapper.querySelector("[data-np-retry]").addEventListener("click", unlockDiscount);
+    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", dismissPopup);
   }
 
   async function completeUnlock() {
     try {
+      showProgress("Connecting your browser notifications...");
       var result = await syncSubscription();
       showSuccess(result);
     } catch (error) {
@@ -380,6 +428,7 @@
   async function unlockDiscount() {
     var permission;
     try {
+      showProgress("Waiting for browser permission...");
       permission = await Notification.requestPermission();
     } catch (error) {
       console.error("[NotifyPilot] requestPermission failed", error);
@@ -390,6 +439,7 @@
       dismissPopup();
       return;
     }
+    showProgress("Permission confirmed. Unlocking your access...");
     await completeUnlock();
   }
 
