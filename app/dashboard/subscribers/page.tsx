@@ -1,11 +1,11 @@
-import { BellRing, Clock, MapPin, MonitorSmartphone, UserCheck, UserX } from "lucide-react";
+import { BellRing, Clock, MapPin, MonitorSmartphone, Radio, UserCheck, UserX } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
 import { TableShell, Td, Th } from "@/components/ui/table";
 import { Badge, statusTone } from "@/components/ui/badge";
 import { SubscriberActions } from "@/components/subscribers/subscriber-actions";
-import { formatDateTime, formatNumber, getInitials } from "@/lib/utils";
+import { formatNumber, formatRelativeTime, getInitials, pushProviderLabel } from "@/lib/utils";
 import { listDiscountCodesFromData } from "@/lib/data/supabase-repository";
 import {
   getSubscriberSummary,
@@ -70,6 +70,27 @@ export default async function SubscribersPage() {
               const subscriberGroups = subscriberGroupIds
                 .map((groupId) => groupsById.get(groupId))
                 .filter((group): group is NonNullable<typeof group> => Boolean(group));
+              const isEmail = subscriber.displayName.includes("@");
+              const detail = {
+                email: isEmail ? subscriber.displayName : undefined,
+                anonymous: /^Visitor\b/i.test(subscriber.displayName),
+                status: subscriber.status,
+                browser: subscriber.browser,
+                device: subscriber.device,
+                country: subscriber.country,
+                pushProvider: pushProviderLabel(subscriber.subscription?.endpoint),
+                subscribedAt: subscriber.subscribedAt,
+                lastSeenAt: subscriber.lastSeenAt,
+                discount: discount
+                  ? {
+                      code: discount.code,
+                      percent: discount.discountPercent,
+                      status: discount.status,
+                      expiresAt: discount.expiresAt,
+                      usedAt: discount.usedAt
+                    }
+                  : undefined
+              };
               return (
               <tr key={subscriber.id} className="hover:bg-muted/40">
                 <Td className="min-w-72">
@@ -90,6 +111,10 @@ export default async function SubscribersPage() {
                         <span className="inline-flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5" />
                           {subscriber.country}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Radio className="h-3.5 w-3.5" />
+                          {detail.pushProvider}
                         </span>
                       </div>
                     </div>
@@ -119,14 +144,14 @@ export default async function SubscribersPage() {
                 <Td className="min-w-32">
                   <Badge tone={statusTone(subscriber.status)}>{subscriber.status}</Badge>
                 </Td>
-                <Td className="min-w-48 text-sm text-muted-foreground">
+                <Td className="min-w-44 text-sm text-muted-foreground">
                   <div>
                     <span className="font-semibold text-foreground">Subscribed</span>
-                    <div>{formatDateTime(subscriber.subscribedAt)}</div>
+                    <div>{formatRelativeTime(subscriber.subscribedAt)}</div>
                   </div>
                   <div className="mt-2">
                     <span className="font-semibold text-foreground">Last seen</span>
-                    <div>{formatDateTime(subscriber.lastSeenAt)}</div>
+                    <div>{formatRelativeTime(subscriber.lastSeenAt)}</div>
                   </div>
                 </Td>
                 <Td className="text-right">
@@ -134,6 +159,7 @@ export default async function SubscribersPage() {
                     subscriberId={subscriber.id}
                     displayName={subscriber.displayName}
                     discountCode={discount?.code}
+                    detail={detail}
                     groups={groups.map((group) => ({
                       id: group.id,
                       name: group.name,

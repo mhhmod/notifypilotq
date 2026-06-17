@@ -1,10 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { Bell, Check, Clipboard, Loader2, Pencil, Plus, UserX, Users, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Bell,
+  Check,
+  Clipboard,
+  Globe,
+  Loader2,
+  MapPin,
+  MonitorSmartphone,
+  Plus,
+  Radio,
+  Ticket,
+  UserX,
+  Users,
+  X
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { inputClass } from "@/components/ui/field";
+import { Badge, statusTone } from "@/components/ui/badge";
+import { formatDateTime, formatRelativeTime, getInitials } from "@/lib/utils";
 
 type SubscriberActionGroup = {
   id: string;
@@ -12,16 +28,37 @@ type SubscriberActionGroup = {
   activeSubscriberCount: number;
 };
 
+export type SubscriberDetail = {
+  email?: string;
+  anonymous: boolean;
+  status: string;
+  browser: string;
+  device: string;
+  country: string;
+  pushProvider: string;
+  subscribedAt: string;
+  lastSeenAt: string;
+  discount?: {
+    code: string;
+    percent: number;
+    status: string;
+    expiresAt: string;
+    usedAt?: string;
+  };
+};
+
 export function SubscriberActions({
   subscriberId,
   displayName,
   discountCode,
+  detail,
   groups,
   subscriberGroupIds
 }: {
   subscriberId: string;
   displayName: string;
   discountCode?: string;
+  detail: SubscriberDetail;
   groups: SubscriberActionGroup[];
   subscriberGroupIds: string[];
 }) {
@@ -29,9 +66,19 @@ export function SubscriberActions({
   const [loading, setLoading] = useState<string | null>(null);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [entered, setEntered] = useState(false);
   const [name, setName] = useState(displayName);
   const [newGroupName, setNewGroupName] = useState("");
+
+  useEffect(() => {
+    if (!open) {
+      setEntered(false);
+      return;
+    }
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, [open]);
 
   async function run(action: "send-test" | "deactivate") {
     setLoading(action);
@@ -44,11 +91,7 @@ export function SubscriberActions({
       });
       const data = (await response.json().catch(() => null)) as { error?: string } | null;
       if (action === "send-test") {
-        setNote(
-          response.ok
-            ? { ok: true, text: "Test push sent" }
-            : { ok: false, text: data?.error ?? "Test push failed" }
-        );
+        setNote(response.ok ? { ok: true, text: "Test push sent" } : { ok: false, text: data?.error ?? "Test push failed" });
       }
     } finally {
       setLoading(null);
@@ -112,12 +155,14 @@ export function SubscriberActions({
     }
   }
 
-  function copy() {
-    if (!discountCode) return;
-    navigator.clipboard.writeText(discountCode);
+  function copy(value?: string) {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
+
+  const subtitle = detail.email ?? (detail.anonymous ? "Anonymous shopper" : "Shopper");
 
   return (
     <div className="min-w-48">
@@ -126,111 +171,189 @@ export function SubscriberActions({
           {loading === "send-test" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Bell className="h-3.5 w-3.5" />}
           Send test
         </Button>
-        <Button type="button" variant="ghost" size="sm" disabled={!discountCode} onClick={copy}>
+        <Button type="button" variant="ghost" size="sm" disabled={!discountCode} onClick={() => copy(discountCode)}>
           {copied ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
           {copied ? "Copied" : "Code"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setManageOpen((open) => !open)}>
-          <Pencil className="h-3.5 w-3.5" />
-          Manage
+        <Button type="button" size="sm" onClick={() => setOpen(true)}>
+          Details
         </Button>
       </div>
-      {manageOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/25 px-4 py-5 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-lg rounded-lg border border-border bg-card shadow-card">
+
+      {open ? (
+        <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={`Subscriber ${name}`}>
+          <button
+            type="button"
+            aria-label="Close subscriber details"
+            onClick={() => setOpen(false)}
+            className={`absolute inset-0 bg-foreground/30 backdrop-blur-sm transition-opacity duration-300 motion-reduce:transition-none ${entered ? "opacity-100" : "opacity-0"}`}
+          />
+          <aside
+            className={`relative flex h-full w-full max-w-md flex-col bg-card shadow-card transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${entered ? "translate-x-0" : "translate-x-full"}`}
+          >
+            {/* Identity header */}
             <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-              <div>
-                <h3 className="text-base font-bold text-foreground">Manage subscriber</h3>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Rename the subscriber and assign them to campaign groups.
-                </p>
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-accent/10 text-sm font-bold text-accent">
+                  {getInitials(name) || "?"}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-base font-bold text-foreground">{name}</h3>
+                  <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
+                </div>
               </div>
-              <Button type="button" variant="ghost" size="sm" aria-label="Close manage subscriber" onClick={() => setManageOpen(false)}>
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Badge tone={statusTone(detail.status)}>{detail.status}</Badge>
+                <Button type="button" variant="ghost" size="sm" aria-label="Close" onClick={() => setOpen(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            <div className="space-y-5 px-5 py-5">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground" htmlFor={`subscriber-name-${subscriberId}`}>
-                  Subscriber name
-                </label>
-                <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                  <input
-                    id={`subscriber-name-${subscriberId}`}
-                    className={inputClass()}
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                  <Button type="button" size="sm" disabled={loading !== null || !name.trim()} onClick={updateName}>
-                    {loading === "profile" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                    Save name
-                  </Button>
-                </div>
-              </div>
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+              {/* Discount */}
+              <Section icon={Ticket} title="Discount">
+                {detail.discount ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <code className="rounded-md bg-muted px-2 py-1 font-mono text-sm font-semibold text-foreground">
+                        {detail.discount.code}
+                      </code>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => copy(detail.discount?.code)}>
+                        {copied ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
+                        {copied ? "Copied" : "Copy"}
+                      </Button>
+                    </div>
+                    <Row label="Value" value={`${detail.discount.percent}% off`} />
+                    <Row label="Status" value={<Badge tone={statusTone(detail.discount.status)}>{detail.discount.status}</Badge>} />
+                    <Row label="Expires" value={formatDateTime(detail.discount.expiresAt)} />
+                    {detail.discount.usedAt ? <Row label="Used" value={formatDateTime(detail.discount.usedAt)} /> : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No code issued yet — created automatically on opt-in.</p>
+                )}
+              </Section>
 
-              <div>
-                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                  <Users className="h-3.5 w-3.5" />
-                  Groups
+              {/* Device & channel */}
+              <Section icon={MonitorSmartphone} title="Device & channel">
+                <div className="space-y-3">
+                  <Row label="Device" value={detail.device} />
+                  <Row label="Browser" value={detail.browser} />
+                  <Row label="Push provider" value={<span className="inline-flex items-center gap-1.5"><Radio className="h-3.5 w-3.5 text-muted-foreground" />{detail.pushProvider}</span>} />
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {groups.length > 0 ? (
-                    groups.map((group) => {
-                      const assigned = subscriberGroupIds.includes(group.id);
-                      return (
-                        <Button
-                          key={group.id}
-                          type="button"
-                          variant={assigned ? "primary" : "secondary"}
-                          size="sm"
-                          disabled={loading !== null}
-                          onClick={() => setGroup(group.id, !assigned)}
-                        >
-                          {loading === `group:${group.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                          {group.name}
-                        </Button>
-                      );
-                    })
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Create your first group below.</span>
-                  )}
+              </Section>
+
+              {/* Location */}
+              <Section icon={MapPin} title="Location">
+                <Row label="Country" value={detail.country || "Not provided"} />
+              </Section>
+
+              {/* Lifecycle */}
+              <Section icon={Globe} title="Lifecycle">
+                <div className="space-y-3">
+                  <Row label="Subscribed" value={`${formatDateTime(detail.subscribedAt)} · ${formatRelativeTime(detail.subscribedAt)}`} />
+                  <Row label="Last seen" value={`${formatDateTime(detail.lastSeenAt)} · ${formatRelativeTime(detail.lastSeenAt)}`} />
                 </div>
-              </div>
+              </Section>
 
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-                <input
-                  className={inputClass()}
-                  placeholder="New group name"
-                  value={newGroupName}
-                  onChange={(event) => setNewGroupName(event.target.value)}
-                />
-                <Button type="button" size="sm" disabled={loading !== null || !newGroupName.trim()} onClick={createGroup}>
-                  {loading === "create-group" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                  Create group
-                </Button>
-              </div>
+              {/* Name (edit) */}
+              <Section icon={Users} title="Name & groups">
+                <div className="space-y-4">
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input
+                      aria-label="Subscriber name"
+                      className={inputClass()}
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                    />
+                    <Button type="button" size="sm" disabled={loading !== null || !name.trim()} onClick={updateName}>
+                      {loading === "profile" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                      Save
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {groups.length > 0 ? (
+                      groups.map((group) => {
+                        const assigned = subscriberGroupIds.includes(group.id);
+                        return (
+                          <Button
+                            key={group.id}
+                            type="button"
+                            variant={assigned ? "primary" : "secondary"}
+                            size="sm"
+                            disabled={loading !== null}
+                            onClick={() => setGroup(group.id, !assigned)}
+                          >
+                            {loading === `group:${group.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                            {group.name}
+                          </Button>
+                        );
+                      })
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Create your first group below.</span>
+                    )}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                    <input
+                      className={inputClass()}
+                      placeholder="New group name"
+                      value={newGroupName}
+                      onChange={(event) => setNewGroupName(event.target.value)}
+                    />
+                    <Button type="button" size="sm" disabled={loading !== null || !newGroupName.trim()} onClick={createGroup}>
+                      {loading === "create-group" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                      Create
+                    </Button>
+                  </div>
+                </div>
+              </Section>
+            </div>
 
-              <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-4">
+              {note ? (
+                <span className={`text-sm font-semibold ${note.ok ? "text-success" : "text-danger"}`}>{note.text}</span>
+              ) : (
+                <span />
+              )}
+              <div className="flex items-center gap-2">
                 <Button type="button" variant="danger" size="sm" disabled={loading !== null} onClick={() => run("deactivate")}>
                   {loading === "deactivate" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserX className="h-3.5 w-3.5" />}
-                  Deactivate subscriber
+                  Deactivate
                 </Button>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setManageOpen(false)}>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(false)}>
                   Done
                 </Button>
               </div>
-
-              {note ? (
-                <div className={`text-sm font-semibold ${note.ok ? "text-success" : "text-danger"}`}>{note.text}</div>
-              ) : null}
             </div>
-          </div>
+          </aside>
         </div>
       ) : null}
-      {note && !manageOpen ? (
+
+      {note && !open ? (
         <div className={`mt-2 text-xs font-semibold ${note.ok ? "text-success" : "text-danger"}`}>{note.text}</div>
       ) : null}
+    </div>
+  );
+}
+
+function Section({ icon: Icon, title, children }: { icon: typeof Ticket; title: string; children: ReactNode }) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" />
+        {title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Row({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-semibold text-foreground">{value}</span>
     </div>
   );
 }
