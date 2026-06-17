@@ -145,6 +145,12 @@
     return /iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
+  // Chrome on iOS. Add-to-Home-Screen lives inside its ⋯ menu (Share is one tap
+  // in from there), unlike Safari where ⋯ and Share are separate.
+  function isIosChrome() {
+    return /CriOS/i.test(navigator.userAgent);
+  }
+
   function isAndroid() {
     return /Android/i.test(navigator.userAgent);
   }
@@ -548,21 +554,27 @@
       '<span style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:' +
       COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
       "…</span>";
-    var shareFlow = [
-      "Tap <strong>Share</strong> " + shareIcon,
+    var shareStep = "Tap <strong>Share</strong> " + shareIcon;
+    var afterShare = [
       "Choose <strong>Add to Home Screen</strong> " + plusIcon,
       "Tap <strong>Add</strong>",
       "Open the new <strong>SN2 icon</strong> from your Home Screen",
       "Tap <strong>Claim discount code</strong>",
       "Tap <strong>Allow</strong> for notifications"
     ];
-    // First step is always a menu step. In an in-app browser it routes the
-    // shopper to their default browser; in Safari/Chrome it points at the menu
-    // that holds Share, so the dots step always precedes Share.
-    var firstStep = inApp
-      ? "Tap " + menuDots + " then <strong>Open in external browser</strong>"
-      : "Tap the " + menuDots + " menu";
-    var steps = [firstStep].concat(shareFlow);
+    // Lead steps differ by context:
+    // - In-app (Instagram): escape to the default browser first, then Share.
+    // - iOS Chrome: Share lives inside the ⋯ menu, so it's ONE combined step.
+    // - Safari: the ⋯ menu and Share are two separate taps.
+    var leadSteps;
+    if (inApp) {
+      leadSteps = ["Tap " + menuDots + " then <strong>Open in external browser</strong>", shareStep];
+    } else if (isIosChrome()) {
+      leadSteps = ["Tap " + menuDots + " menu, then <strong>Share</strong> " + shareIcon];
+    } else {
+      leadSteps = ["Tap the " + menuDots + " menu", shareStep];
+    }
+    var steps = leadSteps.concat(afterShare);
     var stepsHtml = steps
       .map(function (text, index) {
         return (
