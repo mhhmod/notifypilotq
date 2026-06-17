@@ -4,7 +4,7 @@
   var DEFAULT_CONFIG = {
     tenantSlug: "store",
     storeUrl: "",
-    apiBaseUrl: "https://notify.grindctrl.cloud",
+    apiBaseUrl: "https://notify.lnnsy.com",
     configUrl: "/apps/notifypilot",
     vapidPublicKey: "",
     serviceWorkerPath: "/apps/notifypilot?asset=service-worker",
@@ -24,7 +24,7 @@
     secondaryButtonText: "Maybe later",
     successTitle: "Your 10% discount is unlocked",
     successBody: "Use this code at checkout:",
-    iosTitle: "Get 10% off — add to Home Screen",
+    iosTitle: "Get 10% off - add to Home Screen",
     iosBody: "Add this site to your Home Screen to enable notifications and unlock your discount."
   };
 
@@ -457,7 +457,7 @@
     wrapper.innerHTML =
       '<div style="' + card + '">' +
         '<div style="font-size:15px;font-weight:700;line-height:1.3;">' + escapeHtml(config.popupTitle) + '</div>' +
-        '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Unlocking your discount…</div>' +
+        '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Unlocking your discount...</div>' +
       '</div>';
     document.body.appendChild(wrapper);
   }
@@ -496,7 +496,7 @@
         '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Two quick steps in Safari to unlock your code:</div>' +
         '<div style="' + stepRow + '"><span style="' + numDot + '">1</span><div style="' + stepText + '">Tap <strong>Share</strong> ' + shareIcon + ' at the bottom of Safari</div></div>' +
         '<div style="' + stepRow + '"><span style="' + numDot + '">2</span><div style="' + stepText + '">Choose <strong>Add to Home Screen</strong> ' + plusIcon + '</div></div>' +
-        '<div style="margin-top:12px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Then open the store from your new icon — your 10% code appears automatically.</div>' +
+        '<div style="margin-top:12px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Then open the store from your new icon - your 10% code appears automatically.</div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;">' +
           '<button data-np-dismiss style="' + btnSecondary + '">Got it</button>' +
         '</div>' +
@@ -613,7 +613,7 @@
       Notification: "Notification" in window,
       serviceWorker: "serviceWorker" in navigator,
       PushManager: "PushManager" in window,
-      vapid: config.vapidPublicKey ? config.vapidPublicKey.slice(0, 12) + "…" : "(none)",
+      vapid: config.vapidPublicKey ? config.vapidPublicKey.slice(0, 12) + "..." : "(none)",
       ua: navigator.userAgent
     };
     var rows = Object.keys(info).map(function (k) {
@@ -649,14 +649,14 @@
     var iosSafari = isIosSafari();
     var standalone = isStandalone();
 
-    // iPhone Safari, not yet installed → guide to Home Screen.
+    // iPhone Safari, not yet installed: guide to Home Screen.
     if (iosSafari && !standalone) {
       window.setTimeout(renderIosHint, delayMs);
       return;
     }
 
     // Push channel unavailable. On iOS this means iOS < 16.4 or the page was
-    // opened outside the installed app — tell the shopper instead of going silent.
+    // opened outside the installed app: tell the shopper instead of going silent.
     if (!canUsePush()) {
       if (iosSafari) {
         window.setTimeout(function () {
@@ -674,11 +674,11 @@
           );
         }, delayMs);
       } else if (isAndroid()) {
-        // In-app browsers (Instagram, Facebook, TikTok…) can't do web push.
+        // In-app browsers (Instagram, Facebook, TikTok...) cannot do web push.
         window.setTimeout(function () {
           renderInfo(
             "Open in Chrome to get 10% off",
-            "Notifications work in Chrome on Android. Tap the menu (⋮) and choose “Open in Chrome”, then allow notifications to unlock your discount."
+            "Notifications work in Chrome on Android. Tap the menu and choose Open in Chrome, then allow notifications to unlock your discount."
           );
         }, delayMs);
       }

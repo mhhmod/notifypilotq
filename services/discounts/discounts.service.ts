@@ -58,6 +58,11 @@ function fromRow(row: {
   };
 }
 
+function isDuplicateClaimError(error: { code?: string; message?: string; details?: string }) {
+  const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  return error.code === "23505" && (text.includes("claim_fingerprint") || text.includes("one_claim_fingerprint"));
+}
+
 export function getDiscountForSubscriber(subscriberId: string) {
   return getStore().discountCodes.find(
     (discount) => discount.subscriberId === subscriberId && discount.status === "issued"
@@ -136,7 +141,27 @@ export async function issueOptInDiscount(
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
     const { error } = await supabase.from("np_discount_codes").upsert(discountToRow(discount), { onConflict: "tenant_id,code" });
-    if (error) throw new Error(`Save discount failed: ${error.message}`);
+    if (error) {
+      if (claim?.claimFingerprint && isDuplicateClaimError(error)) {
+        const { data: existingClaimRow, error: loadError } = await supabase
+          .from("np_discount_codes")
+          .select("*")
+          .eq("tenant_id", tenant.id)
+          .eq("claim_fingerprint", claim.claimFingerprint)
+          .maybeSingle();
+
+        if (loadError) throw new Error(`Load existing discount claim failed: ${loadError.message}`);
+        if (existingClaimRow) {
+          const existingClaim = fromRow(existingClaimRow);
+          return {
+            discount: existingClaim.status === "issued" ? existingClaim : null,
+            reason: "already_claimed"
+          };
+        }
+      }
+
+      throw new Error(`Save discount failed: ${error.message}`);
+    }
     await insertActivity(supabase, {
       id: randomUUID(),
       tenantId: tenant.id,
