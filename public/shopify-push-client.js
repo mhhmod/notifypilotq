@@ -24,8 +24,8 @@
     secondaryButtonText: "Maybe later",
     successTitle: "Your 10% discount is unlocked",
     successBody: "Use this code at checkout:",
-    iosTitle: "Get 10% off - add to Home Screen",
-    iosBody: "Add this site to your Home Screen to enable notifications and unlock your discount."
+    iosTitle: "Get 10% off - add SN2 to Home Screen",
+    iosBody: "Add this store to your Home Screen, then open the SN2 icon to unlock your discount."
   };
 
   var themeConfig = window.NotifyPilotPushConfig || {};
@@ -149,7 +149,8 @@
   }
 
   function isStandalone() {
-    return Boolean(window.navigator.standalone);
+    return Boolean(window.navigator.standalone) ||
+      Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
   }
 
   function apiUrl(path) {
@@ -493,10 +494,10 @@
     wrapper.innerHTML =
       '<div style="' + card + '">' +
         '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">' + escapeHtml(config.iosTitle) + '</div>' +
-        '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Two quick steps in Safari to unlock your code:</div>' +
-        '<div style="' + stepRow + '"><span style="' + numDot + '">1</span><div style="' + stepText + '">Tap <strong>Share</strong> ' + shareIcon + ' at the bottom of Safari</div></div>' +
+        '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.iosBody) + '</div>' +
+        '<div style="' + stepRow + '"><span style="' + numDot + '">1</span><div style="' + stepText + '">Tap <strong>Share</strong> ' + shareIcon + ' in your iPhone browser</div></div>' +
         '<div style="' + stepRow + '"><span style="' + numDot + '">2</span><div style="' + stepText + '">Choose <strong>Add to Home Screen</strong> ' + plusIcon + '</div></div>' +
-        '<div style="margin-top:12px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Then open the store from your new icon - your 10% code appears automatically.</div>' +
+        '<div style="margin-top:12px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Open the new SN2 icon from your Home Screen. The unlock button will then show the normal notification prompt and code flow.</div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;">' +
           '<button data-np-dismiss style="' + btnSecondary + '">Got it</button>' +
         '</div>' +
@@ -646,11 +647,13 @@
       return;
     }
 
+    var iosDevice = isIosDevice();
     var iosSafari = isIosSafari();
     var standalone = isStandalone();
 
-    // iPhone Safari, not yet installed: guide to Home Screen.
-    if (iosSafari && !standalone) {
+    // iPhone/iPad browsers must install the site as a Home Screen web app
+    // before Web Push permission and code unlock can run.
+    if (iosDevice && !standalone) {
       window.setTimeout(renderIosHint, delayMs);
       return;
     }
@@ -663,14 +666,6 @@
           renderInfo(
             "One more step on iPhone",
             "Open this store from its Home Screen icon on iOS 16.4 or later to turn on notifications and unlock your discount."
-          );
-        }, delayMs);
-      } else if (isIosDevice()) {
-        // Chrome/Firefox/Edge on iOS cannot do web push (Apple restriction).
-        window.setTimeout(function () {
-          renderInfo(
-            "Open in Safari to get 10% off",
-            "On iPhone, notifications only work in Safari. Open sn2studios.co in Safari, then Add to Home Screen to unlock your discount."
           );
         }, delayMs);
       } else if (isAndroid()) {
