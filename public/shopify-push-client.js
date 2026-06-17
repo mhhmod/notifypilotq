@@ -153,15 +153,6 @@
     return /Instagram|FBAN|FBAV|FB_IAB|Line\/|Twitter|TikTok|musical_ly|Snapchat|Pinterest|GSA/i.test(navigator.userAgent);
   }
 
-  // iOS scheme that escapes an in-app webview (Instagram/Facebook/...) into Safari.
-  function openInSafari() {
-    try {
-      window.location.href = "x-safari-" + window.location.href;
-    } catch (_) {
-      /* ignore */
-    }
-  }
-
   function isStandalone() {
     return Boolean(window.navigator.standalone) ||
       Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
@@ -736,11 +727,11 @@
     // iPhone/iPad browsers must install the site as a Home Screen web app
     // before Web Push permission and code unlock can run.
     if (iosDevice && !standalone) {
-      // In-app browsers (Instagram/Facebook/...) can't add to Home Screen, so try
-      // to bounce to the default browser first; if that's blocked, the step card's
-      // first step tells the shopper how to do it via the ⋯ menu. Same 7-step card
-      // either way — never naming Safari or Chrome.
-      if (isInAppBrowser()) openInSafari();
+      // In-app browsers (Instagram/Facebook/...) can't add to Home Screen. We do
+      // NOT auto-redirect: setting location to the x-safari- scheme is blocked by
+      // these apps and can kill the page before the card renders. Instead the
+      // step card's first step tells the shopper to use the ⋯ menu -> Open in
+      // external browser. Same 7-step card either way; never names Safari/Chrome.
       if (hasSeenIosSteps()) {
         // Already saw the full steps: keep them one tap away via the pill.
         window.setTimeout(renderStepsPill, delayMs);
