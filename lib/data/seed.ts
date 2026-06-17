@@ -9,6 +9,8 @@ import type {
   PushCampaign,
   PushClick,
   PushEvent,
+  SubscriberGroup,
+  SubscriberGroupMembership,
   PushSubscriber,
   SubscriberActivity,
   Tenant
@@ -78,6 +80,43 @@ export const subscribers: PushSubscriber[] = [
   endpointHash: `endpoint_${String(id).slice(-4)}`,
   isOwnerAllowed: Boolean(isOwnerAllowed)
 }));
+
+export const subscriberGroups: SubscriberGroup[] = [
+  {
+    id: "grp_vip_access",
+    tenantId: tenant.id,
+    name: "VIP early access",
+    description: "High-intent subscribers for private drops and early collection access.",
+    createdAt: "2026-06-13T10:00:00.000Z",
+    updatedAt: "2026-06-13T10:00:00.000Z"
+  },
+  {
+    id: "grp_cairo_drop",
+    tenantId: tenant.id,
+    name: "Cairo drop list",
+    description: "Subscribers to notify first for Egypt-focused releases.",
+    createdAt: "2026-06-13T10:05:00.000Z",
+    updatedAt: "2026-06-13T10:05:00.000Z"
+  }
+];
+
+export const subscriberGroupMemberships: SubscriberGroupMembership[] = [
+  ...subscribers.slice(0, 3).map((subscriber) => ({
+    tenantId: tenant.id,
+    groupId: "grp_vip_access",
+    subscriberId: subscriber.id,
+    createdAt: "2026-06-13T10:10:00.000Z"
+  })),
+  ...subscribers
+    .filter((subscriber) => subscriber.country === "Egypt")
+    .slice(0, 5)
+    .map((subscriber) => ({
+      tenantId: tenant.id,
+      groupId: "grp_cairo_drop",
+      subscriberId: subscriber.id,
+      createdAt: "2026-06-13T10:12:00.000Z"
+    }))
+];
 
 export const campaigns: PushCampaign[] = [
   {

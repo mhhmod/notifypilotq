@@ -1,10 +1,10 @@
 import { PageHeader } from "@/components/dashboard/page-header";
 import { CreateCampaignWizard } from "@/components/campaigns/create-campaign-wizard";
 import { getSettings } from "@/services/settings/settings.service";
-import { listSubscribers } from "@/services/subscribers/subscribers.service";
+import { listSubscriberGroups, listSubscribers } from "@/services/subscribers/subscribers.service";
 
 export default async function NewCampaignPage() {
-  const [subscribers, settings] = await Promise.all([listSubscribers(), getSettings()]);
+  const [subscribers, settings, groups] = await Promise.all([listSubscribers(), getSettings(), listSubscriberGroups()]);
   const activeSubscriberCount = subscribers.filter((subscriber) => subscriber.status === "Active").length;
   const testSubscriberCount = subscribers.filter(
     (subscriber) => subscriber.status === "Active" && subscriber.isOwnerAllowed
@@ -22,6 +22,11 @@ export default async function NewCampaignPage() {
         liveSendingEnabled={settings.safety.liveSendingEnabled}
         storeName={settings.brand.storeName}
         defaultClickUrl={settings.brand.defaultClickUrl}
+        groups={groups.map((group) => ({
+          id: group.id,
+          name: group.name,
+          activeSubscriberCount: group.activeSubscriberCount
+        }))}
       />
     </div>
   );

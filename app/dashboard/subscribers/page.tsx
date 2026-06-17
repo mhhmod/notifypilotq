@@ -7,17 +7,31 @@ import { Badge, statusTone } from "@/components/ui/badge";
 import { SubscriberActions } from "@/components/subscribers/subscriber-actions";
 import { formatDateTime, formatNumber, getInitials } from "@/lib/utils";
 import { listDiscountCodesFromData } from "@/lib/data/supabase-repository";
-import { getSubscriberSummary, listSubscribers } from "@/services/subscribers/subscribers.service";
+import {
+  getSubscriberSummary,
+  listSubscriberGroupMemberships,
+  listSubscriberGroups,
+  listSubscribers
+} from "@/services/subscribers/subscribers.service";
 
 export default async function SubscribersPage() {
-  const [summary, subscribers, discounts] = await Promise.all([
+  const [summary, subscribers, discounts, groups, memberships] = await Promise.all([
     getSubscriberSummary(),
     listSubscribers(),
-    listDiscountCodesFromData()
+    listDiscountCodesFromData(),
+    listSubscriberGroups(),
+    listSubscriberGroupMemberships()
   ]);
   const discountsBySubscriber = new Map(
     discounts.map((discount) => [discount.subscriberId, discount])
   );
+  const groupsById = new Map(groups.map((group) => [group.id, group]));
+  const groupIdsBySubscriber = new Map<string, string[]>();
+  memberships.forEach((membership) => {
+    const current = groupIdsBySubscriber.get(membership.subscriberId) ?? [];
+    current.push(membership.groupId);
+    groupIdsBySubscriber.set(membership.subscriberId, current);
+  });
 
   return (
     <div>
@@ -46,6 +60,7 @@ export default async function SubscribersPage() {
               <Th>Device</Th>
               <Th>Country</Th>
               <Th>Status</Th>
+              <Th>Groups</Th>
               <Th>Discount Code</Th>
               <Th>Code Status</Th>
               <Th>Subscribed At</Th>
@@ -56,6 +71,10 @@ export default async function SubscribersPage() {
           <tbody>
             {subscribers.map((subscriber) => {
               const discount = discountsBySubscriber.get(subscriber.id);
+              const subscriberGroupIds = groupIdsBySubscriber.get(subscriber.id) ?? [];
+              const subscriberGroups = subscriberGroupIds
+                .map((groupId) => groupsById.get(groupId))
+                .filter((group): group is NonNullable<typeof group> => Boolean(group));
               return (
               <tr key={subscriber.id} className="hover:bg-muted/40">
                 <Td className="min-w-52">
@@ -77,6 +96,17 @@ export default async function SubscribersPage() {
                 <Td>
                   <Badge tone={statusTone(subscriber.status)}>{subscriber.status}</Badge>
                 </Td>
+                <Td className="min-w-48">
+                  <div className="flex flex-wrap gap-1.5">
+                    {subscriberGroups.length > 0 ? (
+                      subscriberGroups.map((group) => (
+                        <Badge key={group.id} tone="accent">{group.name}</Badge>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No group</span>
+                    )}
+                  </div>
+                </Td>
                 <Td className="min-w-44 font-mono text-xs font-semibold text-foreground">
                   {discount?.code ?? "Not issued"}
                 </Td>
@@ -90,7 +120,17 @@ export default async function SubscribersPage() {
                 <Td className="min-w-40 text-muted-foreground">{formatDateTime(subscriber.subscribedAt)}</Td>
                 <Td className="min-w-40 text-muted-foreground">{formatDateTime(subscriber.lastSeenAt)}</Td>
                 <Td>
-                  <SubscriberActions subscriberId={subscriber.id} discountCode={discount?.code} />
+                  <SubscriberActions
+                    subscriberId={subscriber.id}
+                    displayName={subscriber.displayName}
+                    discountCode={discount?.code}
+                    groups={groups.map((group) => ({
+                      id: group.id,
+                      name: group.name,
+                      activeSubscriberCount: group.activeSubscriberCount
+                    }))}
+                    subscriberGroupIds={subscriberGroupIds}
+                  />
                 </Td>
               </tr>
               );

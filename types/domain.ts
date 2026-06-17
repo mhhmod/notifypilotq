@@ -14,7 +14,7 @@ export type CampaignStatus =
   | "Failed"
   | "Cancelled";
 
-export type AudienceType = "Selected test subscribers" | "All active subscribers";
+export type AudienceType = "Selected test subscribers" | "All active subscribers" | "Subscriber group";
 
 export type SendMode = "Save as draft" | "Send now" | "Schedule for later";
 
@@ -51,6 +51,27 @@ export interface PushSubscriber {
   endpointHash: string;
   isOwnerAllowed: boolean;
   subscription?: PushSubscriptionPayload;
+}
+
+export interface SubscriberGroup {
+  id: string;
+  tenantId: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriberGroupMembership {
+  tenantId: string;
+  groupId: string;
+  subscriberId: string;
+  createdAt: string;
+}
+
+export interface SubscriberGroupSummary extends SubscriberGroup {
+  subscriberCount: number;
+  activeSubscriberCount: number;
 }
 
 export type DiscountCodeStatus = "issued" | "used" | "expired" | "cancelled";
@@ -112,6 +133,7 @@ export interface PushCampaign {
   imageUrl?: string;
   iconUrl?: string;
   audience: AudienceType;
+  audienceGroupId?: string;
   status: CampaignStatus;
   createdAt: string;
   scheduledAt?: string;
@@ -265,6 +287,7 @@ export interface CampaignInput {
   imageUrl?: string;
   iconUrl?: string;
   audience: AudienceType;
+  audienceGroupId?: string;
   sendMode: SendMode;
   scheduledAt?: string;
 }

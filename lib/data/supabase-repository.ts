@@ -12,6 +12,9 @@ import type {
   PushEvent,
   PushSubscriber,
   SubscriberActivity,
+  SubscriberGroup,
+  SubscriberGroupMembership,
+  SubscriberGroupSummary,
   Tenant
 } from "@/types/domain";
 
@@ -42,6 +45,22 @@ type SubscriberRow = {
   subscription_payload?: PushSubscriber["subscription"] | null;
 };
 
+type SubscriberGroupRow = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type SubscriberGroupMembershipRow = {
+  tenant_id: string;
+  group_id: string;
+  subscriber_id: string;
+  created_at: string;
+};
+
 type CampaignRow = {
   id: string;
   tenant_id: string;
@@ -52,6 +71,7 @@ type CampaignRow = {
   image_url?: string | null;
   icon_url?: string | null;
   audience: PushCampaign["audience"];
+  audience_group_id?: string | null;
   status: PushCampaign["status"];
   created_at: string;
   scheduled_at?: string | null;
@@ -150,6 +170,10 @@ function assertNoError(error: { message: string } | null, action: string) {
   if (error) throw new Error(`${action}: ${error.message}`);
 }
 
+function isMissingGroupSchemaError(error: { code?: string; message?: string } | null) {
+  return Boolean(error && (error.code === "42P01" || error.code === "42703" || /np_subscriber_group/i.test(error.message ?? "")));
+}
+
 function tenantFromRow(row: TenantRow): Tenant {
   return {
     id: row.id,
@@ -176,6 +200,46 @@ function subscriberFromRow(row: SubscriberRow): PushSubscriber {
     endpointHash: row.endpoint_hash,
     isOwnerAllowed: Boolean(row.is_owner_allowed),
     subscription: row.subscription_payload ?? undefined
+  };
+}
+
+function subscriberGroupFromRow(row: SubscriberGroupRow): SubscriberGroup {
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    name: row.name,
+    description: row.description ?? undefined,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+export function subscriberGroupToRow(group: SubscriberGroup) {
+  return {
+    id: group.id,
+    tenant_id: group.tenantId,
+    name: group.name,
+    description: group.description ?? null,
+    created_at: group.createdAt,
+    updated_at: group.updatedAt
+  };
+}
+
+function subscriberGroupMembershipFromRow(row: SubscriberGroupMembershipRow): SubscriberGroupMembership {
+  return {
+    tenantId: row.tenant_id,
+    groupId: row.group_id,
+    subscriberId: row.subscriber_id,
+    createdAt: row.created_at
+  };
+}
+
+export function subscriberGroupMembershipToRow(membership: SubscriberGroupMembership) {
+  return {
+    tenant_id: membership.tenantId,
+    group_id: membership.groupId,
+    subscriber_id: membership.subscriberId,
+    created_at: membership.createdAt
   };
 }
 
@@ -207,6 +271,7 @@ function campaignFromRow(row: CampaignRow): PushCampaign {
     imageUrl: row.image_url ?? undefined,
     iconUrl: row.icon_url ?? undefined,
     audience: row.audience,
+    audienceGroupId: row.audience_group_id ?? undefined,
     status: row.status,
     createdAt: row.created_at,
     scheduledAt: row.scheduled_at ?? undefined,
@@ -230,6 +295,7 @@ export function campaignToRow(campaign: PushCampaign) {
     image_url: campaign.imageUrl ?? null,
     icon_url: campaign.iconUrl ?? null,
     audience: campaign.audience,
+    ...(campaign.audienceGroupId ? { audience_group_id: campaign.audienceGroupId } : {}),
     status: campaign.status,
     scheduled_at: campaign.scheduledAt ?? null,
     sent_at: campaign.sentAt ?? null,
@@ -436,6 +502,65 @@ export async function listSubscribersFromData() {
     .order("subscribed_at", { ascending: false });
   assertNoError(error, "Load subscribers failed");
   return (data ?? []).map(subscriberFromRow);
+}
+
+export async function listSubscriberGroupsFromData(): Promise<SubscriberGroupSummary[]> {
+  if (!canUseProductionData()) {
+    const store = getStore();
+    const activeSubscribers = new Set(
+      store.subscribers.filter((subscriber) => subscriber.status === "Active").map((subscriber) => subscriber.id)
+    );
+
+    return [...store.subscriberGroups]
+      .map((group) => {
+        const memberships = store.subscriberGroupMemberships.filter((membership) => membership.groupId === group.id);
+        return {
+          ...group,
+          subscriberCount: memberships.length,
+          activeSubscriberCount: memberships.filter((membership) => activeSubscribers.has(membership.subscriberId)).length
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const supabase = getSupabaseAdminOrThrow();
+  const tenant = await getTenant();
+  const [groupsResult, membershipsResult, subscribersResult] = await Promise.all([
+    supabase.from("np_subscriber_groups").select("*").eq("tenant_id", tenant.id).order("name", { ascending: true }),
+    supabase.from("np_subscriber_group_members").select("*").eq("tenant_id", tenant.id),
+    supabase.from("np_push_subscribers").select("id,status").eq("tenant_id", tenant.id)
+  ]);
+
+  if (isMissingGroupSchemaError(groupsResult.error) || isMissingGroupSchemaError(membershipsResult.error)) return [];
+  assertNoError(groupsResult.error, "Load subscriber groups failed");
+  assertNoError(membershipsResult.error, "Load subscriber group members failed");
+  assertNoError(subscribersResult.error, "Load subscriber group subscriber counts failed");
+
+  const activeSubscribers = new Set(
+    (subscribersResult.data ?? [])
+      .filter((subscriber) => subscriber.status === "Active")
+      .map((subscriber) => subscriber.id)
+  );
+
+  return (groupsResult.data ?? []).map((row) => {
+    const group = subscriberGroupFromRow(row);
+    const memberships = (membershipsResult.data ?? []).filter((membership) => membership.group_id === group.id);
+    return {
+      ...group,
+      subscriberCount: memberships.length,
+      activeSubscriberCount: memberships.filter((membership) => activeSubscribers.has(membership.subscriber_id)).length
+    };
+  });
+}
+
+export async function listSubscriberGroupMembershipsFromData(): Promise<SubscriberGroupMembership[]> {
+  if (!canUseProductionData()) return [...getStore().subscriberGroupMemberships];
+  const supabase = getSupabaseAdminOrThrow();
+  const tenant = await getTenant();
+  const { data, error } = await supabase.from("np_subscriber_group_members").select("*").eq("tenant_id", tenant.id);
+  if (isMissingGroupSchemaError(error)) return [];
+  assertNoError(error, "Load subscriber group members failed");
+  return (data ?? []).map(subscriberGroupMembershipFromRow);
 }
 
 export async function listDiscountCodesFromData() {

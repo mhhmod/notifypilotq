@@ -9,6 +9,8 @@ import {
   pushClicks,
   pushEvents,
   subscriberActivity,
+  subscriberGroupMemberships,
+  subscriberGroups,
   subscribers,
   tenant
 } from "@/lib/data/seed";
@@ -21,6 +23,8 @@ import type {
   PushCampaign,
   PushClick,
   PushEvent,
+  SubscriberGroup,
+  SubscriberGroupMembership,
   PushSubscriber,
   DiscountCodeRecord,
   SubscriberActivity,
@@ -38,6 +42,8 @@ interface StoreState {
   pushClicks: PushClick[];
   discountCodes: DiscountCodeRecord[];
   subscriberActivity: SubscriberActivity[];
+  subscriberGroups: SubscriberGroup[];
+  subscriberGroupMemberships: SubscriberGroupMembership[];
   shopifyInstallations: ShopifyInstallation[];
   appSettings: AppSettings;
   integrationStatus: IntegrationStatus;
@@ -64,6 +70,8 @@ export function getStore() {
       pushClicks: clone(pushClicks),
       discountCodes: clone(discountCodes),
       subscriberActivity: clone(subscriberActivity),
+      subscriberGroups: clone(subscriberGroups),
+      subscriberGroupMemberships: clone(subscriberGroupMemberships),
       shopifyInstallations: [],
       appSettings: clone(appSettings),
       integrationStatus: clone(integrationStatus),

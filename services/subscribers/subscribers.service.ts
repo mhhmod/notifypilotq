@@ -6,14 +6,26 @@ import {
   getTenant,
   insertActivity,
   insertEvent,
+  listSubscriberGroupsFromData,
+  listSubscriberGroupMembershipsFromData,
   listSubscribersFromData,
+  subscriberGroupMembershipToRow,
+  subscriberGroupToRow,
   subscriberToRow
 } from "@/lib/data/supabase-repository";
-import type { PushSubscriber, PushSubscriptionPayload } from "@/types/domain";
+import type { PushSubscriber, PushSubscriptionPayload, SubscriberGroup, SubscriberGroupMembership } from "@/types/domain";
 import { recordAuditLog } from "@/services/audit/audit.service";
 
 export async function listSubscribers() {
   return listSubscribersFromData();
+}
+
+export async function listSubscriberGroups() {
+  return listSubscriberGroupsFromData();
+}
+
+export async function listSubscriberGroupMemberships() {
+  return listSubscriberGroupMembershipsFromData();
 }
 
 export async function getSubscriberSummary() {
@@ -114,6 +126,160 @@ export async function deactivateSubscriber(subscriberId: string, actorEmail: str
   });
 
   return subscriber;
+}
+
+export async function updateSubscriberProfile(input: { subscriberId: string; displayName: string }, actorEmail: string) {
+  const displayName = cleanLabel(input.displayName);
+  if (!displayName) throw new Error("Subscriber name is required.");
+
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    const tenant = await getTenant();
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("np_push_subscribers")
+      .update({ display_name: displayName, updated_at: now })
+      .eq("tenant_id", tenant.id)
+      .eq("id", input.subscriberId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) throw new Error(`Update subscriber failed: ${error.message}`);
+    if (!data) throw new Error("Subscriber not found.");
+
+    await insertActivity(supabase, {
+      id: randomUUID(),
+      tenantId: tenant.id,
+      subscriberId: input.subscriberId,
+      activityType: "Subscriber updated",
+      message: "Subscriber name updated",
+      metadata: { displayName },
+      createdAt: now
+    });
+  } else {
+    const store = getStore();
+    const subscriber = store.subscribers.find((item) => item.id === input.subscriberId);
+    if (!subscriber) throw new Error("Subscriber not found.");
+    subscriber.displayName = displayName;
+    subscriber.lastSeenAt = new Date().toISOString();
+    store.subscriberActivity.unshift({
+      id: newId("act"),
+      tenantId: store.tenant.id,
+      subscriberId: input.subscriberId,
+      activityType: "Subscriber updated",
+      message: "Subscriber name updated",
+      metadata: { displayName },
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  recordAuditLog({
+    action: "subscriber update",
+    actorEmail,
+    entityType: "subscriber",
+    entityId: input.subscriberId,
+    metadata: { displayName }
+  });
+
+  return { ok: true };
+}
+
+export async function createSubscriberGroup(input: { name: string; description?: string }, actorEmail: string) {
+  const name = cleanLabel(input.name);
+  if (!name) throw new Error("Group name is required.");
+  const now = new Date().toISOString();
+  const tenant = await getTenant();
+  const group: SubscriberGroup = {
+    id: canUseProductionData() ? randomUUID() : newId("grp"),
+    tenantId: tenant.id,
+    name,
+    description: cleanLabel(input.description),
+    createdAt: now,
+    updatedAt: now
+  };
+
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    const { error } = await supabase.from("np_subscriber_groups").insert(subscriberGroupToRow(group));
+    if (error) throw new Error(`Create subscriber group failed: ${error.message}`);
+  } else {
+    const store = getStore();
+    if (store.subscriberGroups.some((item) => item.name.toLowerCase() === name.toLowerCase())) {
+      throw new Error("A group with this name already exists.");
+    }
+    store.subscriberGroups.push(group);
+  }
+
+  recordAuditLog({
+    action: "subscriber group create",
+    actorEmail,
+    entityType: "subscriber_group",
+    entityId: group.id,
+    metadata: { name }
+  });
+
+  return group;
+}
+
+export async function setSubscriberGroupMembership(
+  input: { subscriberId: string; groupId: string; assigned: boolean },
+  actorEmail: string
+) {
+  const tenant = await getTenant();
+  const now = new Date().toISOString();
+
+  if (canUseProductionData()) {
+    const supabase = getSupabaseAdminOrThrow();
+    if (input.assigned) {
+      const membership: SubscriberGroupMembership = {
+        tenantId: tenant.id,
+        groupId: input.groupId,
+        subscriberId: input.subscriberId,
+        createdAt: now
+      };
+      const { error } = await supabase
+        .from("np_subscriber_group_members")
+        .upsert(subscriberGroupMembershipToRow(membership), { onConflict: "group_id,subscriber_id" });
+      if (error) throw new Error(`Assign group failed: ${error.message}`);
+    } else {
+      const { error } = await supabase
+        .from("np_subscriber_group_members")
+        .delete()
+        .eq("tenant_id", tenant.id)
+        .eq("group_id", input.groupId)
+        .eq("subscriber_id", input.subscriberId);
+      if (error) throw new Error(`Remove group failed: ${error.message}`);
+    }
+  } else {
+    const store = getStore();
+    if (input.assigned) {
+      const exists = store.subscriberGroupMemberships.some(
+        (membership) => membership.groupId === input.groupId && membership.subscriberId === input.subscriberId
+      );
+      if (!exists) {
+        store.subscriberGroupMemberships.push({
+          tenantId: tenant.id,
+          groupId: input.groupId,
+          subscriberId: input.subscriberId,
+          createdAt: now
+        });
+      }
+    } else {
+      store.subscriberGroupMemberships = store.subscriberGroupMemberships.filter(
+        (membership) => !(membership.groupId === input.groupId && membership.subscriberId === input.subscriberId)
+      );
+    }
+  }
+
+  recordAuditLog({
+    action: input.assigned ? "subscriber group assign" : "subscriber group remove",
+    actorEmail,
+    entityType: "subscriber",
+    entityId: input.subscriberId,
+    metadata: { groupId: input.groupId }
+  });
+
+  return { ok: true };
 }
 
 export async function registerSubscriber(input: {

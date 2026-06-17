@@ -20,6 +20,7 @@ interface FormState {
   imageUrl: string;
   iconUrl: string;
   audience: AudienceType;
+  audienceGroupId: string;
   sendMode: SendMode;
 }
 
@@ -31,6 +32,7 @@ const initialState: FormState = {
   imageUrl: "",
   iconUrl: "",
   audience: "Selected test subscribers",
+  audienceGroupId: "",
   sendMode: "Save as draft"
 };
 
@@ -41,13 +43,15 @@ export function CreateCampaignWizard({
   testSubscriberCount,
   liveSendingEnabled,
   storeName,
-  defaultClickUrl
+  defaultClickUrl,
+  groups
 }: {
   activeSubscriberCount: number;
   testSubscriberCount: number;
   liveSendingEnabled: boolean;
   storeName: string;
   defaultClickUrl: string;
+  groups: { id: string; name: string; activeSubscriberCount: number }[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -58,7 +62,13 @@ export function CreateCampaignWizard({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
 
-  const estimatedRecipients = form.audience === "All active subscribers" ? activeSubscriberCount : testSubscriberCount;
+  const selectedGroup = groups.find((group) => group.id === form.audienceGroupId);
+  const estimatedRecipients =
+    form.audience === "All active subscribers"
+      ? activeSubscriberCount
+      : form.audience === "Subscriber group"
+        ? selectedGroup?.activeSubscriberCount ?? 0
+        : testSubscriberCount;
   const liveAllowed = liveSendingEnabled || form.audience === "Selected test subscribers";
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -75,12 +85,23 @@ export function CreateCampaignWizard({
     if (form.clickUrl.trim() && !isValidUrl(form.clickUrl)) nextErrors.clickUrl = "Click URL must be a valid URL.";
     if (form.imageUrl.trim() && !isValidUrl(form.imageUrl)) nextErrors.imageUrl = "Image URL must be a valid URL.";
     if (form.iconUrl.trim() && !isValidUrl(form.iconUrl)) nextErrors.iconUrl = "Icon URL must be a valid URL.";
+    if (form.audience === "Subscriber group" && !form.audienceGroupId) nextErrors.audienceGroupId = "Choose a subscriber group.";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  function validateAudience() {
+    const nextErrors: Record<string, string> = {};
+    if (form.audience === "Subscriber group" && !form.audienceGroupId) {
+      nextErrors.audienceGroupId = "Choose a subscriber group.";
+    }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
   function next() {
     if (step === 0 && !validateContent()) return;
+    if (step === 1 && !validateAudience()) return;
     setStep((current) => Math.min(current + 1, steps.length - 1));
   }
 
@@ -93,6 +114,7 @@ export function CreateCampaignWizard({
       imageUrl: form.imageUrl || undefined,
       iconUrl: form.iconUrl || undefined,
       audience: form.audience,
+      audienceGroupId: form.audience === "Subscriber group" ? form.audienceGroupId : undefined,
       sendMode: form.sendMode,
       ...extra
     };
@@ -254,7 +276,7 @@ export function CreateCampaignWizard({
 
           {step === 1 ? (
             <div className="grid gap-3">
-              {(["Selected test subscribers", "All active subscribers"] as AudienceType[]).map((audience) => (
+              {(["Selected test subscribers", "All active subscribers", "Subscriber group"] as AudienceType[]).map((audience) => (
                 <label key={audience} className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-4 hover:bg-muted/50">
                   <input
                     type="radio"
@@ -266,11 +288,34 @@ export function CreateCampaignWizard({
                   <span>
                     <span className="block text-sm font-bold text-foreground">{audience}</span>
                     <span className="mt-1 block text-sm text-muted-foreground">
-                      Estimated recipients: {audience === "All active subscribers" ? activeSubscriberCount : testSubscriberCount}
+                      Estimated recipients: {
+                        audience === "All active subscribers"
+                          ? activeSubscriberCount
+                          : audience === "Subscriber group"
+                            ? selectedGroup?.activeSubscriberCount ?? 0
+                            : testSubscriberCount
+                      }
                     </span>
                   </span>
                 </label>
               ))}
+              {form.audience === "Subscriber group" ? (
+                <Field label="Choose group" htmlFor="audienceGroupId" error={errors.audienceGroupId}>
+                  <select
+                    id="audienceGroupId"
+                    className={inputClass(Boolean(errors.audienceGroupId))}
+                    value={form.audienceGroupId}
+                    onChange={(event) => update("audienceGroupId", event.target.value)}
+                  >
+                    <option value="">Select a group</option>
+                    {groups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.name} - {group.activeSubscriberCount} active
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : null}
             </div>
           ) : null}
 
@@ -294,7 +339,7 @@ export function CreateCampaignWizard({
             <div className="space-y-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <ReviewRow label="Campaign name" value={form.name} />
-                <ReviewRow label="Audience" value={form.audience} />
+                <ReviewRow label="Audience" value={form.audience === "Subscriber group" ? selectedGroup?.name ?? "Subscriber group" : form.audience} />
                 <ReviewRow label="Notification title" value={form.notificationTitle} />
                 <ReviewRow label="Estimated recipients" value={String(estimatedRecipients)} />
                 <ReviewRow label="Notification body" value={form.notificationBody} wide />
@@ -365,7 +410,9 @@ export function CreateCampaignWizard({
           <CardContent>
             <div className="text-sm font-bold text-foreground">Recipient estimate</div>
             <div className="mt-3 text-3xl font-bold">{estimatedRecipients}</div>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{form.audience}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {form.audience === "Subscriber group" ? selectedGroup?.name ?? "Choose a group" : form.audience}
+            </p>
           </CardContent>
         </Card>
       </div>

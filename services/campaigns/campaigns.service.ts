@@ -9,6 +9,7 @@ import {
   getTenant,
   insertEvent,
   listCampaignsFromData,
+  listSubscriberGroupMembershipsFromData,
   listSubscribersFromData,
   recipientToRow
 } from "@/lib/data/supabase-repository";
@@ -17,17 +18,25 @@ import { recordAuditLog } from "@/services/audit/audit.service";
 import { sendPushToSubscriber } from "@/services/push/push.service";
 import type { AudienceType, CampaignInput, CampaignRecipient, CampaignStatus, PushCampaign, PushSubscriber } from "@/types/domain";
 
-async function audienceSubscribers(audience: AudienceType) {
+async function audienceSubscribers(audience: AudienceType, audienceGroupId?: string) {
   const subscribers = await listSubscribersFromData();
   if (audience === "Selected test subscribers") {
     return subscribers.filter((subscriber) => subscriber.status === "Active" && subscriber.isOwnerAllowed);
+  }
+  if (audience === "Subscriber group") {
+    if (!audienceGroupId) throw new Error("Subscriber group is required.");
+    const memberships = await listSubscriberGroupMembershipsFromData();
+    const subscriberIds = new Set(
+      memberships.filter((membership) => membership.groupId === audienceGroupId).map((membership) => membership.subscriberId)
+    );
+    return subscribers.filter((subscriber) => subscriber.status === "Active" && subscriberIds.has(subscriber.id));
   }
 
   return subscribers.filter((subscriber) => subscriber.status === "Active");
 }
 
-export async function estimateAudience(audience: AudienceType) {
-  return (await audienceSubscribers(audience)).length;
+export async function estimateAudience(audience: AudienceType, audienceGroupId?: string) {
+  return (await audienceSubscribers(audience, audienceGroupId)).length;
 }
 
 export async function listCampaigns() {
@@ -44,13 +53,16 @@ function validateCampaignInput(input: CampaignInput) {
   if (!input.notificationBody.trim()) throw new Error("Notification body is required.");
   if (!input.clickUrl.trim()) throw new Error("Click URL is required.");
   if (!isValidUrl(input.clickUrl)) throw new Error("Click URL must be a valid URL.");
+  if (input.audience === "Subscriber group" && !input.audienceGroupId) {
+    throw new Error("Choose a subscriber group.");
+  }
 }
 
 export async function createCampaign(input: CampaignInput, actorEmail: string, status: CampaignStatus = "Draft") {
   validateCampaignInput(input);
 
   const tenant = await getTenant();
-  const estimatedRecipients = await estimateAudience(input.audience);
+  const estimatedRecipients = await estimateAudience(input.audience, input.audienceGroupId);
   const campaign: PushCampaign = {
     id: canUseProductionData() ? randomUUID() : newId("cmp"),
     tenantId: tenant.id,
@@ -61,6 +73,7 @@ export async function createCampaign(input: CampaignInput, actorEmail: string, s
     imageUrl: input.imageUrl?.trim() || undefined,
     iconUrl: input.iconUrl?.trim() || undefined,
     audience: input.audience,
+    audienceGroupId: input.audience === "Subscriber group" ? input.audienceGroupId : undefined,
     status,
     createdAt: new Date().toISOString(),
     scheduledAt: input.sendMode === "Schedule for later" ? input.scheduledAt : undefined,
@@ -113,6 +126,7 @@ export async function duplicateCampaign(campaignId: string, actorEmail: string) 
       imageUrl: source.imageUrl,
       iconUrl: source.iconUrl,
       audience: source.audience,
+      audienceGroupId: source.audienceGroupId,
       sendMode: "Save as draft"
     },
     actorEmail,
@@ -194,7 +208,7 @@ async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipie
   const existing = (await getCampaign(campaign.id))?.recipients ?? [];
   if (existing.length > 0) return existing;
 
-  const recipients = (await audienceSubscribers(campaign.audience)).map((subscriber) => ({
+  const recipients = (await audienceSubscribers(campaign.audience, campaign.audienceGroupId)).map((subscriber) => ({
     id: canUseProductionData() ? randomUUID() : newId("rec"),
     campaignId: campaign.id,
     subscriberId: subscriber.id,
@@ -327,7 +341,7 @@ export async function sendLiveCampaign(input: CampaignInput & { confirmation: st
   if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), requestEvent);
   else getStore().pushEvents.unshift(requestEvent);
 
-  await completeDelivery(campaign, recipients, await audienceSubscribers(campaign.audience));
+  await completeDelivery(campaign, recipients, await audienceSubscribers(campaign.audience, campaign.audienceGroupId));
   const completeEvent = {
     id: canUseProductionData() ? randomUUID() : newId("evt"),
     tenantId: campaign.tenantId,
@@ -376,7 +390,7 @@ export async function sendExistingCampaignLive(campaignId: string, actorEmail: s
   if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), requestEvent);
   else getStore().pushEvents.unshift(requestEvent);
 
-  await completeDelivery(campaign, recipients, await audienceSubscribers(campaign.audience));
+  await completeDelivery(campaign, recipients, await audienceSubscribers(campaign.audience, campaign.audienceGroupId));
   const completeEvent = {
     id: canUseProductionData() ? randomUUID() : newId("evt"),
     tenantId: campaign.tenantId,
@@ -458,4 +472,3 @@ export async function recordCampaignClick(input: { campaignId: string; subscribe
 
   return campaign;
 }
-
