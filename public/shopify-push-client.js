@@ -593,11 +593,10 @@
       '<span style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:' +
       COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
       "…</span>";
-    // One iPhone step list for every entry point (Instagram or Safari). Steps 1-2
-    // escape an in-app browser; in Safari proper they are simply skipped.
-    var steps = [
-      "Tap " + menuDots + " in the <strong>top right</strong>",
-      "Tap <strong>Open in external browser</strong>",
+    // Safari/Chrome start at the bottom-right menu. An in-app browser
+    // (Instagram/...) can't add to Home Screen, so it gets two extra lead steps
+    // to escape into the default browser first.
+    var baseSteps = [
       "Tap " + menuDots + " in the <strong>bottom right</strong>",
       "Tap <strong>Share</strong> " + shareIcon,
       "Tap <strong>More</strong>",
@@ -607,6 +606,9 @@
       "Tap <strong>Claim discount code</strong>",
       "Tap <strong>Allow</strong> for notifications"
     ];
+    var steps = isInAppBrowser()
+      ? ["Tap " + menuDots + " in the <strong>top right</strong>", "Tap <strong>Open in external browser</strong>"].concat(baseSteps)
+      : baseSteps;
     var stepsHtml = steps
       .map(function (text, index) {
         return (
