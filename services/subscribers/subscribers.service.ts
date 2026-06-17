@@ -55,6 +55,26 @@ function shouldReplaceGeneratedVisitor(value: string) {
   return /^Visitor( WEB)?[-\s]\d+$/i.test(value) || value === "Not provided";
 }
 
+function isSubscriberGroupSchemaMissingError(error: unknown) {
+  const value = error as { code?: string; message?: string } | null;
+  const message = value?.message ?? (error instanceof Error ? error.message : "");
+  return Boolean(
+    value?.code === "42P01" ||
+      value?.code === "42703" ||
+      value?.code === "PGRST205" ||
+      /np_subscriber_group|schema cache|could not find the table/i.test(message)
+  );
+}
+
+function isDuplicateSubscriberGroupError(error: unknown) {
+  const value = error as { code?: string; message?: string } | null;
+  return Boolean(value?.code === "23505" || /duplicate key|already exists/i.test(value?.message ?? ""));
+}
+
+function subscriberGroupsUnavailableMessage() {
+  return "Subscriber groups need the latest database update before they can be used. Apply the subscriber groups migration, then refresh.";
+}
+
 export async function deactivateSubscriber(subscriberId: string, actorEmail: string) {
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
@@ -201,6 +221,8 @@ export async function createSubscriberGroup(input: { name: string; description?:
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
     const { error } = await supabase.from("np_subscriber_groups").insert(subscriberGroupToRow(group));
+    if (isSubscriberGroupSchemaMissingError(error)) throw new Error(subscriberGroupsUnavailableMessage());
+    if (isDuplicateSubscriberGroupError(error)) throw new Error("A group with this name already exists.");
     if (error) throw new Error(`Create subscriber group failed: ${error.message}`);
   } else {
     const store = getStore();
@@ -240,6 +262,7 @@ export async function setSubscriberGroupMembership(
       const { error } = await supabase
         .from("np_subscriber_group_members")
         .upsert(subscriberGroupMembershipToRow(membership), { onConflict: "group_id,subscriber_id" });
+      if (isSubscriberGroupSchemaMissingError(error)) throw new Error(subscriberGroupsUnavailableMessage());
       if (error) throw new Error(`Assign group failed: ${error.message}`);
     } else {
       const { error } = await supabase
@@ -248,6 +271,7 @@ export async function setSubscriberGroupMembership(
         .eq("tenant_id", tenant.id)
         .eq("group_id", input.groupId)
         .eq("subscriber_id", input.subscriberId);
+      if (isSubscriberGroupSchemaMissingError(error)) throw new Error(subscriberGroupsUnavailableMessage());
       if (error) throw new Error(`Remove group failed: ${error.message}`);
     }
   } else {

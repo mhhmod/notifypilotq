@@ -1,4 +1,4 @@
-import { BellRing, Clock, UserCheck, UserX } from "lucide-react";
+import { BellRing, Clock, MapPin, MonitorSmartphone, UserCheck, UserX } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { MetricCard } from "@/components/dashboard/metric-card";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -56,16 +56,11 @@ export default async function SubscribersPage() {
           <thead>
             <tr>
               <Th>Subscriber</Th>
-              <Th>Browser</Th>
-              <Th>Device</Th>
-              <Th>Country</Th>
-              <Th>Status</Th>
               <Th>Groups</Th>
               <Th>Discount Code</Th>
-              <Th>Code Status</Th>
-              <Th>Subscribed At</Th>
-              <Th>Last Seen</Th>
-              <Th>Actions</Th>
+              <Th>Readiness</Th>
+              <Th>Timeline</Th>
+              <Th className="text-right">Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -77,7 +72,7 @@ export default async function SubscribersPage() {
                 .filter((group): group is NonNullable<typeof group> => Boolean(group));
               return (
               <tr key={subscriber.id} className="hover:bg-muted/40">
-                <Td className="min-w-52">
+                <Td className="min-w-72">
                   <div className="flex items-center gap-3">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-accent/10 text-xs font-bold text-accent">
                       {getInitials(subscriber.displayName)}
@@ -87,14 +82,18 @@ export default async function SubscribersPage() {
                       <div className="text-xs text-muted-foreground">
                         {subscriber.browser} on {subscriber.device}
                       </div>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <MonitorSmartphone className="h-3.5 w-3.5" />
+                          {subscriber.browser} / {subscriber.device}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {subscriber.country}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </Td>
-                <Td>{subscriber.browser}</Td>
-                <Td>{subscriber.device}</Td>
-                <Td className="min-w-44">{subscriber.country}</Td>
-                <Td>
-                  <Badge tone={statusTone(subscriber.status)}>{subscriber.status}</Badge>
                 </Td>
                 <Td className="min-w-48">
                   <div className="flex flex-wrap gap-1.5">
@@ -107,19 +106,30 @@ export default async function SubscribersPage() {
                     )}
                   </div>
                 </Td>
-                <Td className="min-w-44 font-mono text-xs font-semibold text-foreground">
-                  {discount?.code ?? "Not issued"}
+                <Td className="min-w-44">
+                  <div className="font-mono text-xs font-semibold text-foreground">{discount?.code ?? "Not issued"}</div>
+                  <div className="mt-1">
+                    {discount ? (
+                      <Badge tone={statusTone(discount.status)}>{discount.status}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Available after opt-in</span>
+                    )}
+                  </div>
                 </Td>
-                <Td>
-                  {discount ? (
-                    <Badge tone={statusTone(discount.status)}>{discount.status}</Badge>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">Available after opt-in</span>
-                  )}
+                <Td className="min-w-32">
+                  <Badge tone={statusTone(subscriber.status)}>{subscriber.status}</Badge>
                 </Td>
-                <Td className="min-w-40 text-muted-foreground">{formatDateTime(subscriber.subscribedAt)}</Td>
-                <Td className="min-w-40 text-muted-foreground">{formatDateTime(subscriber.lastSeenAt)}</Td>
-                <Td>
+                <Td className="min-w-48 text-sm text-muted-foreground">
+                  <div>
+                    <span className="font-semibold text-foreground">Subscribed</span>
+                    <div>{formatDateTime(subscriber.subscribedAt)}</div>
+                  </div>
+                  <div className="mt-2">
+                    <span className="font-semibold text-foreground">Last seen</span>
+                    <div>{formatDateTime(subscriber.lastSeenAt)}</div>
+                  </div>
+                </Td>
+                <Td className="text-right">
                   <SubscriberActions
                     subscriberId={subscriber.id}
                     displayName={subscriber.displayName}
