@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import { join } from "path";
 import { publicEnv, serverEnv } from "@/lib/config/env";
 import { getSettingsFromData, getTenant } from "@/lib/data/supabase-repository";
 
-const DEFAULT_APP_ICON = `${publicEnv.appUrl.replace(/\/$/, "")}/sn2-ios-icon-512.png`;
+const PROXY_APP_ICON = `${serverEnv.shopifyAppProxyPath}?asset=icon`;
 
 function buildServiceWorker(iconUrl: string) {
   return `
@@ -52,14 +54,24 @@ export async function GET(request: NextRequest) {
   const tenant = await getTenant();
   let storeName = tenant.tenantSlug;
   let storeUrl = serverEnv.shopifyPublicStoreUrl || tenant.storeUrl;
-  let iconUrl = DEFAULT_APP_ICON;
+  let iconUrl = PROXY_APP_ICON;
   try {
     const settings = await getSettingsFromData();
     storeName = settings.brand.storeName || storeName;
     storeUrl = serverEnv.shopifyPublicStoreUrl || settings.brand.storeUrl || tenant.storeUrl;
-    iconUrl = DEFAULT_APP_ICON || settings.brand.defaultNotificationIcon || "";
+    iconUrl = PROXY_APP_ICON || settings.brand.defaultNotificationIcon || "";
   } catch {
     /* fall back to tenant defaults */
+  }
+
+  if (asset === "icon") {
+    const icon = await readFile(join(process.cwd(), "public", "sn2-ios-icon-512.png"));
+    return new NextResponse(icon, {
+      headers: {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    });
   }
 
   if (asset === "service-worker") {
@@ -92,7 +104,7 @@ export async function GET(request: NextRequest) {
       display: "standalone",
       background_color: "#ffffff",
       theme_color: "#000000",
-      icons: iconUrl ? [{ src: iconUrl, sizes: "any", type: iconType, purpose: "any" }] : []
+      icons: iconUrl ? [{ src: iconUrl, sizes: "512x512", type: iconType, purpose: "any" }] : []
     };
     return new NextResponse(JSON.stringify(manifest), {
       headers: { "Content-Type": "application/manifest+json; charset=utf-8" }
