@@ -22,6 +22,14 @@ export function getClientIpHash(request: NextRequest) {
   return hash(`ip:${ip}`).slice(0, 32);
 }
 
+// Stable per-customer claim key: one opt-in discount per email, regardless of
+// device, network, or reinstall. Used when a logged-in customer's email is known.
+export function getEmailClaimFingerprint(storeUrl: string, email: string) {
+  return hash(
+    ["discount-claim-email", storeUrl.replace(/\/$/, "").toLowerCase(), email.trim().toLowerCase()].join("|")
+  ).slice(0, 48);
+}
+
 export function getDiscountClaimFingerprint(request: NextRequest, storeUrl: string) {
   const ipHash = getClientIpHash(request);
   const userAgent = request.headers.get("user-agent")?.trim().toLowerCase() ?? "";

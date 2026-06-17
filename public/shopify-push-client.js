@@ -498,19 +498,35 @@
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="' + COLORS.ink +
       '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin:0 1px;">' +
       '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>';
-    var stepRow = "display:flex;gap:10px;align-items:flex-start;margin-top:12px;";
+    var stepRow = "display:flex;gap:10px;align-items:center;margin-top:9px;";
     var numDot =
       "flex:0 0 auto;width:20px;height:20px;border-radius:999px;background:" + COLORS.primary +
       ";color:" + COLORS.primaryFg + ";font-size:11px;font-weight:800;display:grid;place-items:center;line-height:1;";
-    var stepText = "font-size:13px;line-height:1.5;color:" + COLORS.ink + ";";
+    var stepText = "font-size:13px;line-height:1.4;color:" + COLORS.ink + ";";
+
+    var steps = [
+      "Open this store in <strong>Safari</strong>",
+      "Tap <strong>Share</strong> " + shareIcon,
+      "Choose <strong>Add to Home Screen</strong> " + plusIcon,
+      "Tap <strong>Add</strong>",
+      "Open the new <strong>SN2 icon</strong> from your Home Screen",
+      "Tap <strong>Claim discount code</strong>",
+      "Tap <strong>Allow</strong> for notifications"
+    ];
+    var stepsHtml = steps
+      .map(function (text, index) {
+        return (
+          '<div style="' + stepRow + '"><span style="' + numDot + '">' + (index + 1) + '</span>' +
+          '<div style="' + stepText + '">' + text + '</div></div>'
+        );
+      })
+      .join("");
 
     wrapper.innerHTML =
       '<div style="' + card + '">' +
         '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">' + escapeHtml(config.iosTitle) + '</div>' +
-        '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.iosBody) + '</div>' +
-        '<div style="' + stepRow + '"><span style="' + numDot + '">1</span><div style="' + stepText + '">Tap <strong>Share</strong> ' + shareIcon + ' in your iPhone browser</div></div>' +
-        '<div style="' + stepRow + '"><span style="' + numDot + '">2</span><div style="' + stepText + '">Choose <strong>Add to Home Screen</strong> ' + plusIcon + '</div></div>' +
-        '<div style="margin-top:12px;font-size:12px;line-height:1.5;color:' + COLORS.inkDim + ';">Open the new SN2 icon from your Home Screen. The unlock button will then show the normal notification prompt and code flow.</div>' +
+        '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Follow these steps to unlock your 10% code:</div>' +
+        stepsHtml +
         '<div style="display:flex;gap:8px;margin-top:14px;">' +
           '<button data-np-dismiss style="' + btnSecondary + '">Got it</button>' +
         '</div>' +

@@ -5,7 +5,7 @@ import { issueOptInDiscount, getDiscountUrl } from "@/services/discounts/discoun
 import { getTenant } from "@/lib/data/supabase-repository";
 import { serverEnv } from "@/lib/config/env";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { getClientIpHash, getDiscountClaimFingerprint } from "@/lib/security/request-fingerprint";
+import { getClientIpHash, getDiscountClaimFingerprint, getEmailClaimFingerprint } from "@/lib/security/request-fingerprint";
 
 function allowedOrigins() {
   const origins = new Set<string>();
@@ -78,7 +78,13 @@ export async function POST(request: NextRequest) {
   }
 
   const ipHash = getClientIpHash(request);
-  const claimFingerprint = getDiscountClaimFingerprint(request, expectedStoreUrl);
+  // Logged-in customers carry an email (via theme config → displayName); dedupe the
+  // opt-in discount on that email so deleting/reinstalling the PWA can't mint a second
+  // code for the same person. Anonymous shoppers fall back to the device fingerprint.
+  const submittedEmail = parsed.data.displayName?.includes("@") ? parsed.data.displayName.trim().toLowerCase() : "";
+  const claimFingerprint = submittedEmail
+    ? getEmailClaimFingerprint(expectedStoreUrl, submittedEmail)
+    : getDiscountClaimFingerprint(request, expectedStoreUrl);
   const ipLimit = checkRateLimit(`push-subscribe-ip:${ipHash}`, 12, 60 * 60 * 1000);
   const claimLimit = checkRateLimit(`push-subscribe-claim:${claimFingerprint}`, 4, 60 * 60 * 1000);
   if (!ipLimit.allowed || !claimLimit.allowed) {
