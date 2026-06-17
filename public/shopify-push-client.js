@@ -215,7 +215,7 @@
 
     // iPhone/iPad in a browser tab (or in-app): must install first -> show steps.
     if (iosDevice && !standalone) {
-      renderIosHint({ inApp: isInAppBrowser() });
+      renderIosHint();
       return;
     }
     // Push not supported in this context: explain instead of going silent.
@@ -225,6 +225,9 @@
           "One more step on iPhone",
           "Open this store from its Home Screen icon on iOS 16.4 or later to turn on notifications and unlock your discount."
         );
+      } else if (isAndroid() && isInAppBrowser()) {
+        // Android Instagram/in-app browser: full path to Chrome + claim.
+        renderAndroidSteps();
       } else if (isAndroid()) {
         renderInfo(
           "Open in Chrome to get 10% OFF",
@@ -561,14 +564,7 @@
 
   /* ── iOS Add-to-Home-Screen hint ─────────────────────────────────────── */
 
-  function renderIosHint(opts) {
-    // In an in-app browser (Instagram/Facebook/...) the shopper must first open
-    // the page in their default browser before Add-to-Home-Screen exists, so we
-    // prepend that as step 1. Default to auto-detect so the re-open pill restores
-    // the right variant.
-    var inApp = opts && typeof opts === "object" && opts.inApp != null
-      ? Boolean(opts.inApp)
-      : isInAppBrowser();
+  function renderIosHint() {
     if (document.getElementById("notifypilot-optin")) return;
 
     var wrapper = document.createElement("div");
@@ -597,22 +593,20 @@
       '<span style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:' +
       COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
       "…</span>";
-    var shareStep = "Tap <strong>Share</strong> " + shareIcon;
-    // Steps shared by both flows once the menu is open, in the order the shopper
-    // performs them: Allow for notifications must come before claiming the code.
-    var commonTail = [
+    // One iPhone step list for every entry point (Instagram or Safari). Steps 1-2
+    // escape an in-app browser; in Safari proper they are simply skipped.
+    var steps = [
+      "Tap " + menuDots + " in the <strong>top right</strong>",
+      "Tap <strong>Open in external browser</strong>",
+      "Tap " + menuDots + " in the <strong>bottom right</strong>",
+      "Tap <strong>Share</strong> " + shareIcon,
       "Tap <strong>More</strong>",
       "Choose <strong>Add to Home Screen</strong> " + plusIcon,
       "Tap <strong>Add</strong>",
       "Open the new <strong>SN2 icon</strong>",
-      "Tap <strong>Allow</strong> for notifications",
-      "Tap <strong>Claim discount code</strong>"
+      "Tap <strong>Claim discount code</strong>",
+      "Tap <strong>Allow</strong> for notifications"
     ];
-    // In-app (Instagram): escape to the default browser first (two taps), then
-    // Share. Safari/Chrome: the ⋯ menu is in the bottom right, then Share.
-    var steps = inApp
-      ? ["Tap " + menuDots, "Tap <strong>Open in external browser</strong>", shareStep].concat(commonTail)
-      : ["Tap " + menuDots + " in the <strong>bottom right</strong>", shareStep].concat(commonTail);
     var stepsHtml = steps
       .map(function (text, index) {
         return (
@@ -639,12 +633,70 @@
     });
   }
 
+  /* ── Android in-app (Instagram) hint ──────────────────────────────────── */
+
+  // Instagram's in-app browser on Android can't do web push and hides the
+  // "open in browser" action, so spell out the full path to Chrome + claim.
+  function renderAndroidSteps() {
+    if (document.getElementById("notifypilot-optin")) return;
+
+    var wrapper = document.createElement("div");
+    wrapper.id = "notifypilot-optin";
+    wrapper.style.cssText =
+      "position:fixed;right:18px;bottom:18px;z-index:2147483000;" +
+      "max-width:min(360px,calc(100vw - 32px));" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
+      "color:" + COLORS.ink + ";";
+
+    var stepRow = "display:flex;gap:10px;align-items:center;margin-top:9px;";
+    var numDot =
+      "flex:0 0 auto;width:20px;height:20px;border-radius:999px;background:" + COLORS.primary +
+      ";color:" + COLORS.primaryFg + ";font-size:11px;font-weight:800;display:grid;place-items:center;line-height:1;";
+    var stepText = "font-size:13px;line-height:1.4;color:" + COLORS.ink + ";";
+    var menuDots =
+      '<span style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:' +
+      COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
+      "…</span>";
+
+    var steps = [
+      "Tap " + menuDots + " in the <strong>top right</strong>",
+      "Tap <strong>Open in browser</strong>",
+      "Tap <strong>GET 10% OFF</strong>",
+      "Tap <strong>Unlock 10% OFF</strong>",
+      "Tap <strong>Allow</strong>"
+    ];
+    var stepsHtml = steps
+      .map(function (text, index) {
+        return (
+          '<div style="' + stepRow + '"><span style="' + numDot + '">' + (index + 1) + '</span>' +
+          '<div style="' + stepText + '">' + text + '</div></div>'
+        );
+      })
+      .join("");
+
+    wrapper.innerHTML =
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">Get 10% OFF in Chrome</div>' +
+        '<div style="margin-top:4px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Instagram can\'t enable notifications. Open in your browser to unlock your code:</div>' +
+        stepsHtml +
+        '<div style="display:flex;gap:8px;margin-top:14px;">' +
+          '<button data-np-dismiss style="' + btnSecondary + '">Got it</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(wrapper);
+    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", function () {
+      removePopup();
+      renderCtaPill();
+    });
+  }
+
   /* ── Standard popup ───────────────────────────────────────────────────── */
 
-  function renderPopup() {
+  function renderPopup(opts) {
+    var primaryText = (opts && typeof opts === "object" && opts.primaryText) || config.primaryButtonText;
     if (!canUsePush() || !config.vapidPublicKey) return;
     if (Notification.permission === "denied") return;
-    if (Notification.permission !== "default") return;
     if (document.getElementById("notifypilot-optin")) return;
 
     var wrapper = document.createElement("div");
@@ -660,7 +712,7 @@
         '<div style="font-size:15px;font-weight:700;line-height:1.3;">' + escapeHtml(config.popupTitle) + '</div>' +
         '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(config.popupBody) + '</div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
-          '<button data-np-allow style="' + btnPrimary + '">' + escapeHtml(config.primaryButtonText) + '</button>' +
+          '<button data-np-allow style="' + btnPrimary + '">' + escapeHtml(primaryText) + '</button>' +
           '<button data-np-dismiss style="' + btnSecondary + '">' + escapeHtml(config.secondaryButtonText) + '</button>' +
         '</div>' +
       '</div>';
@@ -786,6 +838,31 @@
     if (canUsePush() && Notification.permission === "granted" &&
         localStorage.getItem(config.registeredKey) === "true") {
       syncSubscription().catch(function () {});
+      return;
+    }
+
+    // Installed iPhone app (added to Home Screen): the shopper is here to claim,
+    // so show the claim button immediately — no GET 10% OFF pill to tap first.
+    if (isIosDevice() && isStandalone() && canUsePush()) {
+      if (Notification.permission === "denied") {
+        window.setTimeout(function () {
+          renderInfo(
+            "Notifications are turned off",
+            "Enable notifications for this site in your settings, then reopen to unlock your discount."
+          );
+        }, delayMs);
+      } else {
+        window.setTimeout(function () {
+          renderPopup({ primaryText: "Claim discount code" });
+        }, delayMs);
+      }
+      return;
+    }
+
+    // Android Instagram/in-app browser: it can't push and hides "open in
+    // browser", so auto-show the full 5-step path to Chrome + claim.
+    if (isAndroid() && isInAppBrowser()) {
+      window.setTimeout(renderAndroidSteps, delayMs);
       return;
     }
 
