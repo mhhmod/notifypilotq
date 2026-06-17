@@ -18,14 +18,14 @@
     registeredKey: "notifypilot_push_registered",
     popupDelaySeconds: 2,
     reShowAfterDismissHours: 72,
-    popupTitle: "Get 10% off your order",
+    popupTitle: "Get 10% OFF your order",
     popupBody:
       "Allow notifications to receive your discount code, private drops, restock alerts, and limited-time offers.",
-    primaryButtonText: "Unlock 10% Off",
+    primaryButtonText: "Unlock 10% OFF",
     secondaryButtonText: "Maybe later",
     successTitle: "Your 10% discount is unlocked",
     successBody: "Use this code at checkout:",
-    iosTitle: "Get 10% off - add SN2 to Home Screen",
+    iosTitle: "Get 10% OFF - add SN2 to Home Screen",
     iosBody: "Add this store to your Home Screen, then open the SN2 icon to unlock your discount."
   };
 
@@ -207,7 +207,7 @@
       "background:" + COLORS.ink + ";color:" + COLORS.bg + ";" +
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
       "font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.18);";
-    pill.innerHTML = "Get 10% off";
+    pill.innerHTML = "GET 10% OFF";
     pill.addEventListener("click", function () {
       removeStepsPill();
       renderIosHint();
@@ -432,13 +432,19 @@
     });
   }
 
-  function showError(message) {
+  function showError(message, detail) {
     var wrapper = document.getElementById("notifypilot-optin");
     if (!wrapper) return;
+    var detailHtml = detail
+      ? '<div style="margin-top:8px;padding:7px 9px;border-radius:6px;background:' + COLORS.surface +
+        ';font-family:' + COLORS.mono + ';font-size:11px;line-height:1.4;color:' + COLORS.inkDim +
+        ';word-break:break-word;">' + escapeHtml(detail) + '</div>'
+      : "";
     wrapper.innerHTML =
       '<div style="' + card + '">' +
         '<div style="font-size:15px;font-weight:700;line-height:1.3;color:' + COLORS.ink + ';">Almost there</div>' +
         '<div data-np-message style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">' + escapeHtml(message || "Notifications are not available right now. Please try again later.") + '</div>' +
+        detailHtml +
         '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">' +
           '<button data-np-retry style="' + btnPrimary + '">Try again</button>' +
           '<button data-np-dismiss style="' + btnSecondary + '">Maybe later</button>' +
@@ -462,7 +468,7 @@
         showAlreadySubscribed();
         return;
       }
-      showError("We could not finish that just now. Please try again in a moment.");
+      showError("We could not finish that just now. Please try again in a moment.", detail);
     }
   }
 
@@ -542,7 +548,7 @@
       '<span style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:' +
       COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
       "…</span>";
-    var baseSteps = [
+    var shareFlow = [
       "Tap <strong>Share</strong> " + shareIcon,
       "Choose <strong>Add to Home Screen</strong> " + plusIcon,
       "Tap <strong>Add</strong>",
@@ -550,9 +556,13 @@
       "Tap <strong>Claim discount code</strong>",
       "Tap <strong>Allow</strong> for notifications"
     ];
-    var steps = inApp
-      ? ["Tap " + menuDots + " then <strong>Open in external browser</strong>"].concat(baseSteps)
-      : baseSteps;
+    // First step is always a menu step. In an in-app browser it routes the
+    // shopper to their default browser; in Safari/Chrome it points at the menu
+    // that holds Share, so the dots step always precedes Share.
+    var firstStep = inApp
+      ? "Tap " + menuDots + " then <strong>Open in external browser</strong>"
+      : "Tap the " + menuDots + " menu";
+    var steps = [firstStep].concat(shareFlow);
     var stepsHtml = steps
       .map(function (text, index) {
         return (
@@ -755,7 +765,7 @@
         // In-app browsers (Instagram, Facebook, TikTok...) cannot do web push.
         window.setTimeout(function () {
           renderInfo(
-            "Open in Chrome to get 10% off",
+            "Open in Chrome to get 10% OFF",
             "Notifications work in Chrome on Android. Tap the menu and choose Open in Chrome, then allow notifications to unlock your discount."
           );
         }, delayMs);
