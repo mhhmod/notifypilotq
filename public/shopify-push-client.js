@@ -619,12 +619,16 @@
   }
 
   function renderSafariPrompt() {
+    var dots =
+      '<span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;background:' +
+      COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:13px;line-height:1;vertical-align:-4px;">…</span>';
     var wrapper = makeCard(
       '<div style="' + card + '">' +
         '<div style="font-size:15px;font-weight:700;line-height:1.3;">Open in Safari to get 10% off</div>' +
-        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Your discount needs Safari. Tap below to continue, then your code unlocks.</div>' +
+        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Instagram opens links in its own browser, which can’t unlock your discount.</div>' +
+        '<div style="margin-top:10px;font-size:13px;line-height:1.6;color:' + COLORS.ink + ';">Tap ' + dots + ' at the top-right, then <strong>Open in external browser</strong>.</div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;">' +
-          '<button data-np-safari style="' + btnPrimary + '">Open in Safari</button>' +
+          '<button data-np-safari style="' + btnPrimary + '">Try Safari</button>' +
           '<button data-np-dismiss style="' + btnSecondary + '">Not now</button>' +
         '</div>' +
       '</div>'
