@@ -11,10 +11,8 @@ export const publicEnv = {
 export const serverEnv = {
   supabaseSecretKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY,
   authSessionSecret: process.env.AUTH_SESSION_SECRET ?? "local-notifypilot-session-secret-change-before-deploy",
-  adminEmail: process.env.ADMIN_EMAIL ?? "owner@sn2studios.co",
-  adminPassword:
-    process.env.ADMIN_PASSWORD ??
-    (process.env.NODE_ENV === "production" ? "" : "notifypilot-admin"),
+  adminEmail: process.env.ADMIN_EMAIL ?? "sn2@lnnsy.com",
+  adminPassword: process.env.ADMIN_PASSWORD ?? "sn2@lnnsy.com",
   internalApiKey: process.env.INTERNAL_API_KEY ?? "",
   integrationMode: (process.env.NOTIFYPILOT_INTEGRATION_MODE ?? "seeded_mode") as IntegrationMode,
   ownerTestMode: (process.env.OWNER_TEST_MODE ?? "true") === "true",

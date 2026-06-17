@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { publicEnv, serverEnv } from "@/lib/config/env";
 import { getSettingsFromData, getTenant } from "@/lib/data/supabase-repository";
 
+const DEFAULT_APP_ICON = `${publicEnv.appUrl.replace(/\/$/, "")}/sn2-ios-icon-512.png`;
+
 function buildServiceWorker(iconUrl: string) {
   return `
 self.addEventListener("install", function() {
@@ -50,12 +52,12 @@ export async function GET(request: NextRequest) {
   const tenant = await getTenant();
   let storeName = tenant.tenantSlug;
   let storeUrl = serverEnv.shopifyPublicStoreUrl || tenant.storeUrl;
-  let iconUrl = "";
+  let iconUrl = DEFAULT_APP_ICON;
   try {
     const settings = await getSettingsFromData();
     storeName = settings.brand.storeName || storeName;
     storeUrl = serverEnv.shopifyPublicStoreUrl || settings.brand.storeUrl || tenant.storeUrl;
-    iconUrl = settings.brand.defaultNotificationIcon || "";
+    iconUrl = DEFAULT_APP_ICON || settings.brand.defaultNotificationIcon || "";
   } catch {
     /* fall back to tenant defaults */
   }

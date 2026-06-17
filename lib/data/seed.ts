@@ -30,7 +30,7 @@ export const adminUsers: AdminUser[] = [
   {
     id: "admin_store_owner",
     tenantId: tenant.id,
-    email: "owner@sn2studios.co",
+    email: "sn2@lnnsy.com",
     role: "admin",
     displayName: "Store Admin"
   }
@@ -414,7 +414,7 @@ export const appSettings: AppSettings = {
   brand: {
     storeName: "SN2 Studios",
     storeUrl: "https://sn2studios.co",
-    defaultNotificationIcon: "https://sn2studios.co/cdn/shop/files/store-icon.png",
+    defaultNotificationIcon: "https://notify.lnnsy.com/sn2-ios-icon-512.png",
     defaultClickUrl: "https://sn2studios.co/collections/new-arrivals",
     timezone: "Africa/Cairo"
   },
@@ -485,7 +485,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_campaign_create_1",
     tenantId: tenant.id,
     action: "campaign create",
-    actorEmail: "owner@sn2studios.co",
+    actorEmail: "sn2@lnnsy.com",
     entityType: "campaign",
     entityId: "cmp_winter_drop",
     createdAt: "2026-06-12T07:30:00.000Z"
@@ -494,7 +494,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_send_live_1",
     tenantId: tenant.id,
     action: "send live",
-    actorEmail: "owner@sn2studios.co",
+    actorEmail: "sn2@lnnsy.com",
     entityType: "campaign",
     entityId: "cmp_winter_drop",
     createdAt: "2026-06-12T07:58:00.000Z"
@@ -503,7 +503,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_settings_update_1",
     tenantId: tenant.id,
     action: "settings update",
-    actorEmail: "owner@sn2studios.co",
+    actorEmail: "sn2@lnnsy.com",
     entityType: "settings",
     createdAt: "2026-06-11T10:18:00.000Z"
   },
@@ -511,7 +511,7 @@ export const auditLogs: AuditLog[] = [
     id: "audit_store_test_1",
     tenantId: tenant.id,
     action: "store connection test",
-    actorEmail: "owner@sn2studios.co",
+    actorEmail: "sn2@lnnsy.com",
     entityType: "integration",
     createdAt: "2026-06-10T13:42:00.000Z"
   }

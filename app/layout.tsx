@@ -22,7 +22,20 @@ export const metadata: Metadata = {
     default: "SN2 Studios",
     template: "%s | SN2 Studios"
   },
-  description: "Web push campaigns for e-commerce stores"
+  description: "Web push campaigns for e-commerce stores",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/sn2-ios-icon-180.png", sizes: "180x180", type: "image/png" },
+      { url: "/sn2-ios-icon-512.png", sizes: "512x512", type: "image/png" }
+    ],
+    apple: [{ url: "/sn2-ios-icon-180.png", sizes: "180x180", type: "image/png" }]
+  },
+  appleWebApp: {
+    capable: true,
+    title: "SN2 Studios",
+    statusBarStyle: "black-translucent"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

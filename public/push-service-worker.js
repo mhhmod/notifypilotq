@@ -10,9 +10,9 @@ self.addEventListener("push", function (event) {
   var fallbackUrl = self.location && self.location.origin ? self.location.origin : "/";
   var options = {
     body: payload.body || "A new update is available.",
-    icon: payload.icon || "/icon.png",
+    icon: payload.icon || "/sn2-ios-icon-512.png",
     image: payload.image,
-    badge: payload.icon || "/icon.png",
+    badge: payload.icon || "/sn2-ios-icon-512.png",
     data: {
       clickUrl: payload.clickUrl || fallbackUrl,
       campaignId: payload.campaignId,
