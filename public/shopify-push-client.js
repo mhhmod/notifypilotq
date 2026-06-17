@@ -216,7 +216,7 @@
       "background:" + COLORS.ink + ";color:" + COLORS.bg + ";" +
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
       "font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.18);";
-    pill.innerHTML = "🎁 Get 10% off";
+    pill.innerHTML = "Get 10% off";
     pill.addEventListener("click", function () {
       removeStepsPill();
       renderIosHint();
@@ -376,6 +376,7 @@
         tenantSlug: config.tenantSlug,
         storeUrl: config.storeUrl,
         displayName: shopperDisplayName(),
+        customerEmail: cleanOptional(config.customerEmail),
         browser: detectBrowser(),
         device: detectDevice(),
         country: cleanOptional(config.country),
@@ -513,7 +514,14 @@
 
   /* ── iOS Add-to-Home-Screen hint ─────────────────────────────────────── */
 
-  function renderIosHint() {
+  function renderIosHint(opts) {
+    // In an in-app browser (Instagram/Facebook/...) the shopper must first open
+    // the page in their default browser before Add-to-Home-Screen exists, so we
+    // prepend that as step 1. Default to auto-detect so the re-open pill restores
+    // the right variant.
+    var inApp = opts && typeof opts === "object" && opts.inApp != null
+      ? Boolean(opts.inApp)
+      : isInAppBrowser();
     if (hasDismissCooldown()) return;
     if (document.getElementById("notifypilot-optin")) return;
 
@@ -539,8 +547,11 @@
       ";color:" + COLORS.primaryFg + ";font-size:11px;font-weight:800;display:grid;place-items:center;line-height:1;";
     var stepText = "font-size:13px;line-height:1.4;color:" + COLORS.ink + ";";
 
-    var steps = [
-      "Open this store in <strong>Safari</strong>",
+    var menuDots =
+      '<span style="display:inline-grid;place-items:center;width:18px;height:18px;border-radius:999px;background:' +
+      COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
+      "…</span>";
+    var baseSteps = [
       "Tap <strong>Share</strong> " + shareIcon,
       "Choose <strong>Add to Home Screen</strong> " + plusIcon,
       "Tap <strong>Add</strong>",
@@ -548,6 +559,9 @@
       "Tap <strong>Claim discount code</strong>",
       "Tap <strong>Allow</strong> for notifications"
     ];
+    var steps = inApp
+      ? ["Tap " + menuDots + " then <strong>Open in external browser</strong>"].concat(baseSteps)
+      : baseSteps;
     var stepsHtml = steps
       .map(function (text, index) {
         return (
@@ -673,26 +687,6 @@
     if (wrapper) wrapper.querySelector("[data-np-dismiss]").addEventListener("click", removePopup);
   }
 
-  function renderSafariPrompt() {
-    var dots =
-      '<span style="display:inline-grid;place-items:center;width:20px;height:20px;border-radius:999px;background:' +
-      COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:13px;line-height:1;vertical-align:-4px;">…</span>';
-    var wrapper = makeCard(
-      '<div style="' + card + '">' +
-        '<div style="font-size:15px;font-weight:700;line-height:1.3;">Open in Safari to get 10% off</div>' +
-        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Instagram opens links in its own browser, which can’t unlock your discount.</div>' +
-        '<div style="margin-top:10px;font-size:13px;line-height:1.6;color:' + COLORS.ink + ';">Tap ' + dots + ' at the top-right, then <strong>Open in external browser</strong>.</div>' +
-        '<div style="display:flex;gap:8px;margin-top:14px;">' +
-          '<button data-np-safari style="' + btnPrimary + '">Try Safari</button>' +
-          '<button data-np-dismiss style="' + btnSecondary + '">Not now</button>' +
-        '</div>' +
-      '</div>'
-    );
-    if (!wrapper) return;
-    wrapper.querySelector("[data-np-safari]").addEventListener("click", openInSafari);
-    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", removePopup);
-  }
-
   function renderDebug() {
     var info = {
       iosSafari: isIosSafari(),
@@ -742,15 +736,16 @@
     // iPhone/iPad browsers must install the site as a Home Screen web app
     // before Web Push permission and code unlock can run.
     if (iosDevice && !standalone) {
-      // Instagram/Facebook/etc in-app browser can't install or push: bounce to Safari.
-      if (isInAppBrowser()) {
-        openInSafari();
-        window.setTimeout(renderSafariPrompt, delayMs);
-      } else if (hasSeenIosSteps()) {
+      // In-app browsers (Instagram/Facebook/...) can't add to Home Screen, so try
+      // to bounce to the default browser first; if that's blocked, the step card's
+      // first step tells the shopper how to do it via the ⋯ menu. Same 7-step card
+      // either way — never naming Safari or Chrome.
+      if (isInAppBrowser()) openInSafari();
+      if (hasSeenIosSteps()) {
         // Already saw the full steps: keep them one tap away via the pill.
         window.setTimeout(renderStepsPill, delayMs);
       } else {
-        window.setTimeout(renderIosHint, delayMs);
+        window.setTimeout(function () { renderIosHint(); }, delayMs);
       }
       return;
     }

@@ -39,6 +39,7 @@ const schema = z.object({
   tenantSlug: z.string().optional(),
   storeUrl: z.string().optional(),
   displayName: z.string().max(120).optional(),
+  customerEmail: z.string().max(160).optional(),
   browser: z.string().optional(),
   device: z.string().optional(),
   country: z.string().optional(),
@@ -78,10 +79,14 @@ export async function POST(request: NextRequest) {
   }
 
   const ipHash = getClientIpHash(request);
-  // Logged-in customers carry an email (via theme config → displayName); dedupe the
-  // opt-in discount on that email so deleting/reinstalling the PWA can't mint a second
-  // code for the same person. Anonymous shoppers fall back to the device fingerprint.
-  const submittedEmail = parsed.data.displayName?.includes("@") ? parsed.data.displayName.trim().toLowerCase() : "";
+  // Logged-in customers carry an email (explicit customerEmail field, with a
+  // legacy fallback to an "@"-shaped displayName). Dedupe the opt-in discount on
+  // that email so deleting/reinstalling the PWA — on any device or network —
+  // can't mint a second code for the same person. The email key is stable across
+  // reinstalls; anonymous shoppers fall back to the device+network fingerprint,
+  // which still blocks the common same-device reinstall.
+  const emailCandidate = parsed.data.customerEmail?.trim() || parsed.data.displayName?.trim() || "";
+  const submittedEmail = emailCandidate.includes("@") ? emailCandidate.toLowerCase() : "";
   const claimFingerprint = submittedEmail
     ? getEmailClaimFingerprint(expectedStoreUrl, submittedEmail)
     : getDiscountClaimFingerprint(request, expectedStoreUrl);
