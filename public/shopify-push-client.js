@@ -14,7 +14,6 @@
     customerEmail: "",
     country: "",
     popupDismissedKey: "notifypilot_push_prompt_dismissed_until",
-    iosStepsSeenKey: "notifypilot_ios_steps_seen",
     registeredKey: "notifypilot_push_registered",
     popupDelaySeconds: 2,
     reShowAfterDismissHours: 72,
@@ -145,12 +144,6 @@
     return /iPhone|iPad|iPod/i.test(navigator.userAgent);
   }
 
-  // Chrome on iOS. Add-to-Home-Screen lives inside its ⋯ menu (Share is one tap
-  // in from there), unlike Safari where ⋯ and Share are separate.
-  function isIosChrome() {
-    return /CriOS/i.test(navigator.userAgent);
-  }
-
   function isAndroid() {
     return /Android/i.test(navigator.userAgent);
   }
@@ -187,22 +180,18 @@
     removePopup();
   }
 
-  function markIosStepsSeen() {
-    try { localStorage.setItem(config.iosStepsSeenKey, "1"); } catch (_) { /* ignore */ }
-  }
-
-  function hasSeenIosSteps() {
-    try { return localStorage.getItem(config.iosStepsSeenKey) === "1"; } catch (_) { return false; }
-  }
-
   function removeStepsPill() {
     var pill = document.getElementById("notifypilot-optin-pill");
     if (pill) pill.remove();
   }
 
-  function renderStepsPill() {
+  // The single floating CTA shown on every device as the resting state. Nothing
+  // auto-opens; tapping this is what starts the opt-in flow (steps on iPhone,
+  // the Allow dialog where push is supported).
+  function renderCtaPill() {
     if (document.getElementById("notifypilot-optin")) return;
     if (document.getElementById("notifypilot-optin-pill")) return;
+    if (localStorage.getItem(config.registeredKey) === "true") return;
     var pill = document.createElement("button");
     pill.id = "notifypilot-optin-pill";
     pill.type = "button";
@@ -214,11 +203,60 @@
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
       "font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.18);";
     pill.innerHTML = "GET 10% OFF";
-    pill.addEventListener("click", function () {
-      removeStepsPill();
-      renderIosHint();
-    });
+    pill.addEventListener("click", openOptInFlow);
     document.body.appendChild(pill);
+  }
+
+  // Decide what to show when the shopper taps the CTA pill, per device/state.
+  function openOptInFlow() {
+    removeStepsPill();
+    var iosDevice = isIosDevice();
+    var standalone = isStandalone();
+
+    // iPhone/iPad in a browser tab (or in-app): must install first -> show steps.
+    if (iosDevice && !standalone) {
+      renderIosHint({ inApp: isInAppBrowser() });
+      return;
+    }
+    // Push not supported in this context: explain instead of going silent.
+    if (!canUsePush() || !config.vapidPublicKey) {
+      if (isIosSafari()) {
+        renderInfo(
+          "One more step on iPhone",
+          "Open this store from its Home Screen icon on iOS 16.4 or later to turn on notifications and unlock your discount."
+        );
+      } else if (isAndroid()) {
+        renderInfo(
+          "Open in Chrome to get 10% OFF",
+          "Notifications work in Chrome on Android. Tap the menu and choose Open in Chrome, then allow notifications to unlock your discount."
+        );
+      } else {
+        renderInfo(
+          "Notifications unavailable",
+          "Your browser can't enable notifications right now. Try Chrome, Edge, or Safari to unlock your discount."
+        );
+      }
+      return;
+    }
+    if (Notification.permission === "denied") {
+      renderInfo(
+        "Notifications are turned off",
+        "Enable notifications for this site in your settings, then reopen to unlock your discount."
+      );
+      return;
+    }
+    // Already allowed: go straight to issuing/showing the code (permission is on).
+    if (Notification.permission === "granted") {
+      if (localStorage.getItem(config.registeredKey) === "true") {
+        showAlreadySubscribed();
+      } else {
+        renderProcessing();
+        completeUnlock();
+      }
+      return;
+    }
+    // Permission still unasked: show the Allow dialog.
+    renderPopup();
   }
 
   function canUsePush() {
@@ -346,6 +384,12 @@
   async function syncSubscription() {
     if (!canUsePush() || !config.vapidPublicKey) {
       throw new Error("Push channel is not available.");
+    }
+    // Never issue a discount unless notifications are actually enabled. Guards
+    // against any path reaching here with a stale subscription but permission
+    // revoked, so a code is never granted without notifications on.
+    if (Notification.permission !== "granted") {
+      throw new Error("Please allow notifications to unlock your code.");
     }
     var registration = await navigator.serviceWorker.register(config.serviceWorkerPath);
     // pushManager.subscribe needs an ACTIVE worker; register() can resolve
@@ -525,7 +569,6 @@
     var inApp = opts && typeof opts === "object" && opts.inApp != null
       ? Boolean(opts.inApp)
       : isInAppBrowser();
-    if (hasDismissCooldown()) return;
     if (document.getElementById("notifypilot-optin")) return;
 
     var wrapper = document.createElement("div");
@@ -555,26 +598,21 @@
       COLORS.ink + ';color:' + COLORS.bg + ';font-weight:800;font-size:12px;line-height:1;vertical-align:-3px;">' +
       "…</span>";
     var shareStep = "Tap <strong>Share</strong> " + shareIcon;
-    var afterShare = [
+    // Steps shared by both flows once the menu is open, in the order the shopper
+    // performs them: Allow for notifications must come before claiming the code.
+    var commonTail = [
+      "Tap <strong>More</strong>",
       "Choose <strong>Add to Home Screen</strong> " + plusIcon,
       "Tap <strong>Add</strong>",
-      "Open the new <strong>SN2 icon</strong> from your Home Screen",
-      "Tap <strong>Claim discount code</strong>",
-      "Tap <strong>Allow</strong> for notifications"
+      "Open the new <strong>SN2 icon</strong>",
+      "Tap <strong>Allow</strong> for notifications",
+      "Tap <strong>Claim discount code</strong>"
     ];
-    // Lead steps differ by context:
-    // - In-app (Instagram): escape to the default browser first, then Share.
-    // - iOS Chrome: Share lives inside the ⋯ menu, so it's ONE combined step.
-    // - Safari: the ⋯ menu and Share are two separate taps.
-    var leadSteps;
-    if (inApp) {
-      leadSteps = ["Tap " + menuDots + " then <strong>Open in external browser</strong>", shareStep];
-    } else if (isIosChrome()) {
-      leadSteps = ["Tap " + menuDots + " menu, then <strong>Share</strong> " + shareIcon];
-    } else {
-      leadSteps = ["Tap the " + menuDots + " menu", shareStep];
-    }
-    var steps = leadSteps.concat(afterShare);
+    // In-app (Instagram): escape to the default browser first (two taps), then
+    // Share. Safari/Chrome: the ⋯ menu is in the bottom right, then Share.
+    var steps = inApp
+      ? ["Tap " + menuDots, "Tap <strong>Open in external browser</strong>", shareStep].concat(commonTail)
+      : ["Tap " + menuDots + " in the <strong>bottom right</strong>", shareStep].concat(commonTail);
     var stepsHtml = steps
       .map(function (text, index) {
         return (
@@ -596,9 +634,8 @@
 
     document.body.appendChild(wrapper);
     wrapper.querySelector("[data-np-dismiss]").addEventListener("click", function () {
-      markIosStepsSeen();
       removePopup();
-      renderStepsPill();
+      renderCtaPill();
     });
   }
 
@@ -608,7 +645,6 @@
     if (!canUsePush() || !config.vapidPublicKey) return;
     if (Notification.permission === "denied") return;
     if (Notification.permission !== "default") return;
-    if (hasDismissCooldown()) return;
     if (document.getElementById("notifypilot-optin")) return;
 
     var wrapper = document.createElement("div");
@@ -631,7 +667,10 @@
 
     document.body.appendChild(wrapper);
     wrapper.querySelector("[data-np-allow]").addEventListener("click", unlockDiscount);
-    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", dismissPopup);
+    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", function () {
+      removePopup();
+      renderCtaPill();
+    });
   }
 
   /* ── iOS / PWA install tags ───────────────────────────────────────────── */
@@ -742,70 +781,18 @@
       return;
     }
 
-    var iosDevice = isIosDevice();
-    var iosSafari = isIosSafari();
-    var standalone = isStandalone();
-
-    // iPhone/iPad browsers must install the site as a Home Screen web app
-    // before Web Push permission and code unlock can run.
-    if (iosDevice && !standalone) {
-      // In-app browsers (Instagram/Facebook/...) can't add to Home Screen. We do
-      // NOT auto-redirect: setting location to the x-safari- scheme is blocked by
-      // these apps and can kill the page before the card renders. Instead the
-      // step card's first step tells the shopper to use the ⋯ menu -> Open in
-      // external browser. Same 7-step card either way; never names Safari/Chrome.
-      if (hasSeenIosSteps()) {
-        // Already saw the full steps: keep them one tap away via the pill.
-        window.setTimeout(renderStepsPill, delayMs);
-      } else {
-        window.setTimeout(function () { renderIosHint(); }, delayMs);
-      }
+    // Already fully signed up on a push-capable browser: silently refresh the
+    // subscription and show nothing.
+    if (canUsePush() && Notification.permission === "granted" &&
+        localStorage.getItem(config.registeredKey) === "true") {
+      syncSubscription().catch(function () {});
       return;
     }
 
-    // Push channel unavailable. On iOS this means iOS < 16.4 or the page was
-    // opened outside the installed app: tell the shopper instead of going silent.
-    if (!canUsePush()) {
-      if (iosSafari) {
-        window.setTimeout(function () {
-          renderInfo(
-            "One more step on iPhone",
-            "Open this store from its Home Screen icon on iOS 16.4 or later to turn on notifications and unlock your discount."
-          );
-        }, delayMs);
-      } else if (isAndroid()) {
-        // In-app browsers (Instagram, Facebook, TikTok...) cannot do web push.
-        window.setTimeout(function () {
-          renderInfo(
-            "Open in Chrome to get 10% OFF",
-            "Notifications work in Chrome on Android. Tap the menu and choose Open in Chrome, then allow notifications to unlock your discount."
-          );
-        }, delayMs);
-      }
-      return;
-    }
-
-    if (Notification.permission === "denied") {
-      window.setTimeout(function () {
-        renderInfo(
-          "Notifications are turned off",
-          "Enable notifications for this site in your settings, then reopen to unlock your discount."
-        );
-      }, delayMs);
-      return;
-    }
-
-    if (Notification.permission === "granted") {
-      if (localStorage.getItem(config.registeredKey) === "true") {
-        syncSubscription().catch(function () {});
-      } else {
-        renderProcessing();
-        completeUnlock();
-      }
-      return;
-    }
-
-    window.setTimeout(renderPopup, delayMs);
+    // Every other device/state: show the GET 10% OFF pill as the resting state.
+    // Nothing auto-opens and no code is ever issued without a tap; the shopper
+    // taps the pill, which routes to the right flow via openOptInFlow().
+    window.setTimeout(renderCtaPill, delayMs);
   }
 
   if (document.readyState === "loading") {
