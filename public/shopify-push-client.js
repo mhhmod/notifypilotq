@@ -148,6 +148,19 @@
     return /Android/i.test(navigator.userAgent);
   }
 
+  function isInAppBrowser() {
+    return /Instagram|FBAN|FBAV|FB_IAB|Line\/|Twitter|TikTok|musical_ly|Snapchat|Pinterest|GSA/i.test(navigator.userAgent);
+  }
+
+  // iOS scheme that escapes an in-app webview (Instagram/Facebook/...) into Safari.
+  function openInSafari() {
+    try {
+      window.location.href = "x-safari-" + window.location.href;
+    } catch (_) {
+      /* ignore */
+    }
+  }
+
   function isStandalone() {
     return Boolean(window.navigator.standalone) ||
       Boolean(window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
@@ -605,6 +618,22 @@
     if (wrapper) wrapper.querySelector("[data-np-dismiss]").addEventListener("click", removePopup);
   }
 
+  function renderSafariPrompt() {
+    var wrapper = makeCard(
+      '<div style="' + card + '">' +
+        '<div style="font-size:15px;font-weight:700;line-height:1.3;">Open in Safari to get 10% off</div>' +
+        '<div style="margin-top:6px;font-size:13px;line-height:1.5;color:' + COLORS.inkDim + ';">Your discount needs Safari. Tap below to continue, then your code unlocks.</div>' +
+        '<div style="display:flex;gap:8px;margin-top:14px;">' +
+          '<button data-np-safari style="' + btnPrimary + '">Open in Safari</button>' +
+          '<button data-np-dismiss style="' + btnSecondary + '">Not now</button>' +
+        '</div>' +
+      '</div>'
+    );
+    if (!wrapper) return;
+    wrapper.querySelector("[data-np-safari]").addEventListener("click", openInSafari);
+    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", removePopup);
+  }
+
   function renderDebug() {
     var info = {
       iosSafari: isIosSafari(),
@@ -654,7 +683,13 @@
     // iPhone/iPad browsers must install the site as a Home Screen web app
     // before Web Push permission and code unlock can run.
     if (iosDevice && !standalone) {
-      window.setTimeout(renderIosHint, delayMs);
+      // Instagram/Facebook/etc in-app browser can't install or push: bounce to Safari.
+      if (isInAppBrowser()) {
+        openInSafari();
+        window.setTimeout(renderSafariPrompt, delayMs);
+      } else {
+        window.setTimeout(renderIosHint, delayMs);
+      }
       return;
     }
 

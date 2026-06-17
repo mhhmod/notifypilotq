@@ -55,7 +55,7 @@ export function CreateCampaignWizard({
 }) {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormState>(initialState);
+  const [form, setForm] = useState<FormState>({ ...initialState, clickUrl: defaultClickUrl });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>("");
   const [submitting, setSubmitting] = useState<string | null>(null);
