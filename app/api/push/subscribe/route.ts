@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
     : getDiscountClaimFingerprint(request, expectedStoreUrl);
   const ipLimit = checkRateLimit(`push-subscribe-ip:${ipHash}`, 12, 60 * 60 * 1000);
   const claimLimit = checkRateLimit(`push-subscribe-claim:${claimFingerprint}`, 4, 60 * 60 * 1000);
-  if (!ipLimit.allowed || !claimLimit.allowed) {
+  const dailyIpLimit = checkRateLimit(`push-subscribe-ip-day:${ipHash}`, 6, 24 * 60 * 60 * 1000);
+  if (!ipLimit.allowed || !claimLimit.allowed || !dailyIpLimit.allowed) {
     return NextResponse.json(
       { error: "Discount claim limit reached. Please try again later." },
       { status: 429, headers: cors }

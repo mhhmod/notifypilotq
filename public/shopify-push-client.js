@@ -14,6 +14,7 @@
     customerEmail: "",
     country: "",
     popupDismissedKey: "notifypilot_push_prompt_dismissed_until",
+    iosStepsSeenKey: "notifypilot_ios_steps_seen",
     registeredKey: "notifypilot_push_registered",
     popupDelaySeconds: 2,
     reShowAfterDismissHours: 72,
@@ -187,6 +188,40 @@
   function dismissPopup() {
     setDismissCooldown();
     removePopup();
+  }
+
+  function markIosStepsSeen() {
+    try { localStorage.setItem(config.iosStepsSeenKey, "1"); } catch (_) { /* ignore */ }
+  }
+
+  function hasSeenIosSteps() {
+    try { return localStorage.getItem(config.iosStepsSeenKey) === "1"; } catch (_) { return false; }
+  }
+
+  function removeStepsPill() {
+    var pill = document.getElementById("notifypilot-optin-pill");
+    if (pill) pill.remove();
+  }
+
+  function renderStepsPill() {
+    if (document.getElementById("notifypilot-optin")) return;
+    if (document.getElementById("notifypilot-optin-pill")) return;
+    var pill = document.createElement("button");
+    pill.id = "notifypilot-optin-pill";
+    pill.type = "button";
+    pill.style.cssText =
+      "position:fixed;right:18px;bottom:18px;z-index:2147483000;" +
+      "display:inline-flex;align-items:center;gap:8px;cursor:pointer;" +
+      "padding:10px 14px;border-radius:999px;border:1px solid " + COLORS.border + ";" +
+      "background:" + COLORS.ink + ";color:" + COLORS.bg + ";" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;" +
+      "font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,0.18);";
+    pill.innerHTML = "🎁 Get 10% off";
+    pill.addEventListener("click", function () {
+      removeStepsPill();
+      renderIosHint();
+    });
+    document.body.appendChild(pill);
   }
 
   function canUsePush() {
@@ -533,7 +568,11 @@
       '</div>';
 
     document.body.appendChild(wrapper);
-    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", dismissPopup);
+    wrapper.querySelector("[data-np-dismiss]").addEventListener("click", function () {
+      markIosStepsSeen();
+      removePopup();
+      renderStepsPill();
+    });
   }
 
   /* ── Standard popup ───────────────────────────────────────────────────── */
@@ -707,6 +746,9 @@
       if (isInAppBrowser()) {
         openInSafari();
         window.setTimeout(renderSafariPrompt, delayMs);
+      } else if (hasSeenIosSteps()) {
+        // Already saw the full steps: keep them one tap away via the pill.
+        window.setTimeout(renderStepsPill, delayMs);
       } else {
         window.setTimeout(renderIosHint, delayMs);
       }
