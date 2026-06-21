@@ -99,7 +99,7 @@ export async function issueOptInDiscount(
     : undefined;
   if (existingClaim) {
     return {
-      discount: existingClaim.status === "issued" ? existingClaim : null,
+      discount: existingClaim.subscriberId === subscriberId && existingClaim.status === "issued" ? existingClaim : null,
       reason: "already_claimed"
     };
   }
