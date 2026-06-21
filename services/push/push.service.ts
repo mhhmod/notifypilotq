@@ -2,7 +2,13 @@ import webpush from "web-push";
 import { randomUUID } from "crypto";
 import { canUseRealPush, publicEnv, serverEnv } from "@/lib/config/env";
 import { getStore, newId } from "@/lib/data/store";
-import { canUseProductionData, getSupabaseAdminOrThrow, getTenant, insertEvent } from "@/lib/data/supabase-repository";
+import {
+  canUseProductionData,
+  getSettingsFromData,
+  getSupabaseAdminOrThrow,
+  getTenant,
+  insertEvent
+} from "@/lib/data/supabase-repository";
 import type { PushCampaign, PushSubscriber } from "@/types/domain";
 
 interface PushResult {
@@ -79,4 +85,43 @@ export async function sendPushToSubscriber(
 
     return { ok: false, message: "Push delivery failed" };
   }
+}
+
+export async function sendWelcomePushToSubscriber(subscriber: PushSubscriber): Promise<PushResult> {
+  const tenant = await getTenant();
+  const settings = await getSettingsFromData();
+  const now = new Date().toISOString();
+  const campaign: PushCampaign = {
+    id: `welcome-${randomUUID()}`,
+    tenantId: tenant.id,
+    name: "Welcome notification",
+    notificationTitle: settings.brand.storeName || "SN2 Studios",
+    notificationBody: "Welcome to the SN2 Fam. Excited to have you here.",
+    clickUrl: settings.brand.defaultClickUrl || settings.brand.storeUrl || "https://sn2studios.co/",
+    iconUrl: settings.brand.defaultNotificationIcon || undefined,
+    audience: "Selected test subscribers",
+    status: "Sent",
+    createdAt: now,
+    sentAt: now,
+    totalRecipients: 1,
+    sentCount: 0,
+    failedCount: 0,
+    clickCount: 0,
+    clickRate: 0
+  };
+
+  const result = await sendPushToSubscriber(campaign, subscriber);
+  const event = {
+    id: canUseProductionData() ? randomUUID() : newId("evt"),
+    tenantId: tenant.id,
+    subscriberId: subscriber.id,
+    eventType: result.ok ? "Welcome notification sent" : "Welcome notification failed",
+    message: result.ok ? "Welcome notification sent after subscriber opt-in" : result.message,
+    createdAt: new Date().toISOString()
+  };
+
+  if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), event);
+  else getStore().pushEvents.unshift(event);
+
+  return result;
 }

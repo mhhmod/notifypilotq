@@ -312,7 +312,7 @@ export async function registerSubscriber(input: {
   browser?: string;
   device?: string;
   country?: string;
-}) {
+}): Promise<{ subscriber: PushSubscriber; created: boolean }> {
   const endpointHash = hashEndpoint(input.subscription.endpoint);
 
   if (canUseProductionData()) {
@@ -353,7 +353,7 @@ export async function registerSubscriber(input: {
       if (error) throw new Error(`Update subscriber failed: ${error.message}`);
       if (!data) throw new Error("Subscriber not found after update.");
 
-      return {
+      const subscriber = {
         id: data.id,
         tenantId: data.tenant_id,
         displayName: data.display_name,
@@ -367,6 +367,7 @@ export async function registerSubscriber(input: {
         isOwnerAllowed: Boolean(data.is_owner_allowed),
         subscription: data.subscription_payload ?? undefined
       } satisfies PushSubscriber;
+      return { subscriber, created: false };
     }
 
     const { count, error: countError } = await supabase
@@ -419,7 +420,7 @@ export async function registerSubscriber(input: {
       entityId: subscriber.id
     });
 
-    return subscriber;
+    return { subscriber, created: true };
   }
 
   const store = getStore();
@@ -436,7 +437,7 @@ export async function registerSubscriber(input: {
     if (nextCountry && shouldReplaceGeneratedVisitor(existing.country)) {
       existing.country = nextCountry;
     }
-    return existing;
+    return { subscriber: existing, created: false };
   }
 
   const subscriber: PushSubscriber = {
@@ -479,7 +480,7 @@ export async function registerSubscriber(input: {
     entityId: subscriber.id
   });
 
-  return subscriber;
+  return { subscriber, created: true };
 }
 
 export async function unsubscribePush(endpoint: string) {

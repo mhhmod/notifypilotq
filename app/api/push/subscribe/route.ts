@@ -6,6 +6,7 @@ import { getTenant } from "@/lib/data/supabase-repository";
 import { serverEnv } from "@/lib/config/env";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { getClientIpHash, getDiscountClaimFingerprint, getEmailClaimFingerprint } from "@/lib/security/request-fingerprint";
+import { sendWelcomePushToSubscriber } from "@/services/push/push.service";
 
 function allowedOrigins() {
   const origins = new Set<string>();
@@ -100,12 +101,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const subscriber = await registerSubscriber({
+  const registration = await registerSubscriber({
     ...parsed.data,
     country: parsed.data.country?.trim() || headerCountry(request) || undefined
   });
+  const { subscriber } = registration;
   const result = await issueOptInDiscount(subscriber.id, { claimFingerprint, claimIpHash: ipHash });
   const discountUrl = result.discount ? await getDiscountUrl(result.discount.code) : undefined;
+  if (registration.created) {
+    await sendWelcomePushToSubscriber(subscriber).catch((error) => {
+      console.error("[NotifyPilot] welcome push failed", error);
+    });
+  }
   return NextResponse.json(
     {
       ok: true,
