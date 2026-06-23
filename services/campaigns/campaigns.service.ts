@@ -58,6 +58,11 @@ function validateCampaignInput(input: CampaignInput) {
   }
 }
 
+function isAudienceConstraintError(error: { code?: string; message?: string; details?: string } | null) {
+  const text = `${error?.message ?? ""} ${error?.details ?? ""}`.toLowerCase();
+  return Boolean(error && (error.code === "23514" || text.includes("audience_check")));
+}
+
 export async function createCampaign(input: CampaignInput, actorEmail: string, status: CampaignStatus = "Draft") {
   validateCampaignInput(input);
 
@@ -95,6 +100,9 @@ export async function createCampaign(input: CampaignInput, actorEmail: string, s
   if (canUseProductionData()) {
     const supabase = getSupabaseAdminOrThrow();
     const { error } = await supabase.from("np_push_campaigns").insert(campaignToRow(campaign));
+    if (isAudienceConstraintError(error)) {
+      throw new Error("Campaign groups need the latest database update before sending. Apply the campaign group audience migration, then retry.");
+    }
     if (error) throw new Error(`Create campaign failed: ${error.message}`);
     await insertEvent(supabase, event);
   } else {

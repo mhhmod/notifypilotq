@@ -10,7 +10,7 @@ const variants = {
   ghost:
     "text-muted-foreground hover:bg-muted hover:text-foreground active:translate-y-px disabled:cursor-not-allowed disabled:text-muted-foreground",
   danger:
-    "bg-danger text-[oklch(0.985_0.006_27)] hover:bg-danger/90 active:translate-y-px disabled:cursor-not-allowed disabled:bg-danger/45"
+    "bg-danger text-sidebar-foreground hover:bg-danger/90 active:translate-y-px disabled:cursor-not-allowed disabled:bg-danger/45"
 };
 
 const sizes = {

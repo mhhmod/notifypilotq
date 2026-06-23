@@ -11,6 +11,10 @@ import { recordAuditLog } from "@/services/audit/audit.service";
 const fallbackStoreName = "SN2 Studios";
 const fallbackStoreUrl = "https://sn2studios.co";
 
+function defaultCampaignClickUrl(storeUrl: string) {
+  return `${storeUrl.replace(/\/$/, "")}/collections/all`;
+}
+
 function productionStoreName(value: string | undefined) {
   const name = value?.trim() ?? "";
   return name || fallbackStoreName;
@@ -24,7 +28,7 @@ function productionStoreUrl(value: string | undefined) {
 function normalizeSettings(settings: AppSettings): AppSettings {
   const storeName = productionStoreName(settings.brand.storeName);
   const storeUrl = productionStoreUrl(settings.brand.storeUrl);
-  const defaultClickUrl = settings.brand.defaultClickUrl?.trim() || storeUrl;
+  const defaultClickUrl = settings.brand.defaultClickUrl?.trim() || defaultCampaignClickUrl(storeUrl);
 
   return {
     ...settings,

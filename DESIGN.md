@@ -69,7 +69,7 @@ components:
 
 **Creative North Star: "The After-Hours Launch Desk" — in GrindCTRL Pearl Premium.**
 
-GrindCTRL is the white-label platform that NotifyPilot runs on. The dashboard is an operational control surface for store owners preparing and reviewing web push campaigns. It should feel composed, premium, and trustworthy: the UI is quiet enough for daily use but explicit enough when send safety or store setup state matters.
+GrindCTRL is the white-label web push platform. The dashboard is an operational control surface for store owners preparing and reviewing web push campaigns. It should feel composed, premium, and trustworthy: the UI is quiet enough for daily use but explicit enough when send safety or store setup state matters.
 
 The identity is **monochrome warm-neutral**: ink on warm pearl in light mode, cream on deep warm-black in dark mode. There is no chromatic brand accent — the primary action is ink itself. Color appears only for semantic state (success / warning / danger). The connected tenant store keeps its own brand inside content surfaces such as the notification preview; the platform skin never overrides tenant brand.
 

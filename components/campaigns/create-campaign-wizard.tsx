@@ -54,8 +54,9 @@ export function CreateCampaignWizard({
   groups: { id: string; name: string; activeSubscriberCount: number }[];
 }) {
   const router = useRouter();
+  const fallbackClickUrl = defaultClickUrl?.trim() || "https://sn2studios.co/collections/all";
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState<FormState>({ ...initialState, clickUrl: defaultClickUrl });
+  const [form, setForm] = useState<FormState>({ ...initialState, clickUrl: fallbackClickUrl });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string>("");
   const [submitting, setSubmitting] = useState<string | null>(null);
@@ -78,11 +79,12 @@ export function CreateCampaignWizard({
 
   function validateContent() {
     const nextErrors: Record<string, string> = {};
+    const clickUrl = (form.clickUrl.trim() || fallbackClickUrl).trim();
     if (!form.name.trim()) nextErrors.name = "Campaign name is required.";
     if (!form.notificationTitle.trim()) nextErrors.notificationTitle = "Title is required.";
     if (!form.notificationBody.trim()) nextErrors.notificationBody = "Body is required.";
-    if (!form.clickUrl.trim()) nextErrors.clickUrl = "Click URL is required.";
-    if (form.clickUrl.trim() && !isValidUrl(form.clickUrl)) nextErrors.clickUrl = "Click URL must be a valid URL.";
+    if (!clickUrl) nextErrors.clickUrl = "Click URL is required.";
+    if (clickUrl && !isValidUrl(clickUrl)) nextErrors.clickUrl = "Click URL must be a valid URL.";
     if (form.imageUrl.trim() && !isValidUrl(form.imageUrl)) nextErrors.imageUrl = "Image URL must be a valid URL.";
     if (form.iconUrl.trim() && !isValidUrl(form.iconUrl)) nextErrors.iconUrl = "Icon URL must be a valid URL.";
     if (form.audience === "Subscriber group" && !form.audienceGroupId) nextErrors.audienceGroupId = "Choose a subscriber group.";
@@ -110,7 +112,7 @@ export function CreateCampaignWizard({
       name: form.name,
       notificationTitle: form.notificationTitle,
       notificationBody: form.notificationBody,
-      clickUrl: form.clickUrl,
+      clickUrl: form.clickUrl.trim() || fallbackClickUrl,
       imageUrl: form.imageUrl || undefined,
       iconUrl: form.iconUrl || undefined,
       audience: form.audience,
@@ -236,7 +238,7 @@ export function CreateCampaignWizard({
                 <input
                   id="clickUrl"
                   className={inputClass(Boolean(errors.clickUrl))}
-                  placeholder={defaultClickUrl}
+                  placeholder={fallbackClickUrl}
                   value={form.clickUrl}
                   onChange={(event) => update("clickUrl", event.target.value)}
                 />
@@ -343,7 +345,7 @@ export function CreateCampaignWizard({
                 <ReviewRow label="Notification title" value={form.notificationTitle} />
                 <ReviewRow label="Estimated recipients" value={String(estimatedRecipients)} />
                 <ReviewRow label="Notification body" value={form.notificationBody} wide />
-                <ReviewRow label="Click URL" value={form.clickUrl} wide />
+                <ReviewRow label="Click URL" value={form.clickUrl || fallbackClickUrl} wide />
                 <ReviewRow label="Send mode" value={form.sendMode} />
               </div>
               <NotificationPreview
@@ -353,7 +355,7 @@ export function CreateCampaignWizard({
                 imageUrl={form.imageUrl}
                 iconUrl={form.iconUrl}
                 storeName={storeName}
-                defaultClickUrl={defaultClickUrl}
+                defaultClickUrl={fallbackClickUrl}
               />
               <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
                 <div className="flex items-center gap-2">
@@ -404,7 +406,7 @@ export function CreateCampaignWizard({
           imageUrl={form.imageUrl}
           iconUrl={form.iconUrl}
           storeName={storeName}
-          defaultClickUrl={defaultClickUrl}
+          defaultClickUrl={fallbackClickUrl}
         />
         <Card className="mt-4">
           <CardContent>

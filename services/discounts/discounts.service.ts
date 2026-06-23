@@ -60,7 +60,15 @@ function fromRow(row: {
 
 function isDuplicateClaimError(error: { code?: string; message?: string; details?: string }) {
   const text = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
-  return error.code === "23505" && (text.includes("claim_fingerprint") || text.includes("one_claim_fingerprint"));
+  return error.code === "23505" && (
+    text.includes("claim_fingerprint") ||
+    text.includes("claim_ip_hash") ||
+    text.includes("one_claim_fingerprint")
+  );
+}
+
+function blocksFutureClaim(discount: DiscountCodeRecord) {
+  return discount.status !== "cancelled";
 }
 
 export function getDiscountForSubscriber(subscriberId: string) {
@@ -87,11 +95,21 @@ export async function issueOptInDiscount(
   if (existing) return { discount: existing, reason: "existing_active" };
 
   const existingClaim = claim?.claimFingerprint
-    ? discounts.find((discount) => discount.claimFingerprint === claim.claimFingerprint)
+    ? discounts.find((discount) => discount.claimFingerprint === claim.claimFingerprint && blocksFutureClaim(discount))
     : undefined;
   if (existingClaim) {
     return {
-      discount: existingClaim.status === "issued" ? existingClaim : null,
+      discount: existingClaim.subscriberId === subscriberId && existingClaim.status === "issued" ? existingClaim : null,
+      reason: "already_claimed"
+    };
+  }
+
+  const existingIpClaim = claim?.claimIpHash
+    ? discounts.find((discount) => discount.claimIpHash === claim.claimIpHash && blocksFutureClaim(discount))
+    : undefined;
+  if (existingIpClaim) {
+    return {
+      discount: existingIpClaim.subscriberId === subscriberId && existingIpClaim.status === "issued" ? existingIpClaim : null,
       reason: "already_claimed"
     };
   }
@@ -155,6 +173,27 @@ export async function issueOptInDiscount(
           const existingClaim = fromRow(existingClaimRow);
           return {
             discount: existingClaim.status === "issued" ? existingClaim : null,
+            reason: "already_claimed"
+          };
+        }
+      }
+
+      if (claim?.claimIpHash && isDuplicateClaimError(error)) {
+        const { data: existingIpClaimRow, error: loadError } = await supabase
+          .from("np_discount_codes")
+          .select("*")
+          .eq("tenant_id", tenant.id)
+          .eq("claim_ip_hash", claim.claimIpHash)
+          .neq("status", "cancelled")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (loadError) throw new Error(`Load existing discount claim failed: ${loadError.message}`);
+        if (existingIpClaimRow) {
+          const existingClaim = fromRow(existingIpClaimRow);
+          return {
+            discount: existingClaim.subscriberId === subscriberId && existingClaim.status === "issued" ? existingClaim : null,
             reason: "already_claimed"
           };
         }

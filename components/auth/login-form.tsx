@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/ui/field";
+import { GrindCtrlMark } from "@/components/brand/grindctrl-mark";
 
 export function LoginForm() {
   const router = useRouter();
@@ -40,6 +41,10 @@ export function LoginForm() {
   return (
     <form onSubmit={submit}>
       <div className="mb-7">
+        <div className="mb-6 flex items-center gap-2.5 text-foreground lg:hidden">
+          <GrindCtrlMark size={24} title="GrindCTRL" />
+          <span className="font-display text-lg font-extrabold tracking-tight">GrindCTRL</span>
+        </div>
         <h2 className="font-display text-2xl font-extrabold tracking-tight text-foreground">Sign in</h2>
         <p className="mt-1.5 text-sm text-muted-foreground">Welcome back to your dashboard.</p>
       </div>

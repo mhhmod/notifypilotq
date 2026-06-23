@@ -1,10 +1,10 @@
-# NotifyPilot
+# GrindCTRL
 
 Web push campaigns for e-commerce stores. The production dashboard deploys to `https://notify.grindctrl.cloud`.
 
 ## Product Overview
 
-NotifyPilot collects browser push subscribers, issues opt-in discount codes, and manages notification campaigns for offers, launches, restocks, and announcements. The dashboard includes auth, overview metrics, subscribers, campaigns, a four-step create wizard, campaign details and logs, settings, store integration status, public push assets, a Shopify connector layer, and an inactive n8n sender workflow.
+GrindCTRL collects browser push subscribers, issues opt-in discount codes, and manages notification campaigns for offers, launches, restocks, and announcements. The dashboard includes auth, overview metrics, subscribers, campaigns, a four-step create wizard, campaign details and logs, settings, store integration status, public push assets, a Shopify connector layer, and an inactive n8n sender workflow.
 
 ## Local Setup
 

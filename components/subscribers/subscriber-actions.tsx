@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Bell,
   Check,
@@ -67,18 +67,8 @@ export function SubscriberActions({
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
-  const [entered, setEntered] = useState(false);
   const [name, setName] = useState(displayName);
   const [newGroupName, setNewGroupName] = useState("");
-
-  useEffect(() => {
-    if (!open) {
-      setEntered(false);
-      return;
-    }
-    const id = requestAnimationFrame(() => setEntered(true));
-    return () => cancelAnimationFrame(id);
-  }, [open]);
 
   async function run(action: "send-test" | "deactivate") {
     setLoading(action);
@@ -186,10 +176,10 @@ export function SubscriberActions({
             type="button"
             aria-label="Close subscriber details"
             onClick={() => setOpen(false)}
-            className={`absolute inset-0 bg-foreground/30 backdrop-blur-sm transition-opacity duration-300 motion-reduce:transition-none ${entered ? "opacity-100" : "opacity-0"}`}
+            className="absolute inset-0 bg-foreground/30 backdrop-blur-sm"
           />
           <aside
-            className={`relative flex h-full w-full max-w-md flex-col bg-card shadow-card transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none ${entered ? "translate-x-0" : "translate-x-full"}`}
+            className="relative flex h-full w-full max-w-md flex-col bg-card shadow-card"
           >
             {/* Identity header */}
             <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
