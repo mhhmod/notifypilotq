@@ -6,19 +6,19 @@ product
 
 ## Users
 
-NotifyPilot is used by e-commerce store operators, owners, and marketing admins who need to collect browser push subscribers and send offer, launch, restock, announcement, and recovery campaigns without exposing technical push infrastructure. The primary workspace is the GrindCTRL dashboard at https://notify.grindctrl.cloud.
+GrindCTRL is used by e-commerce store operators, owners, and marketing admins who need to collect browser push subscribers and send offer, launch, restock, announcement, and recovery campaigns without exposing technical push infrastructure. The primary workspace is the GrindCTRL dashboard at https://notify.grindctrl.cloud.
 
 Users are in an operational workflow: checking campaign performance, confirming subscriber readiness, preparing a notification, sending a safe test, and deciding whether a campaign can be scheduled or sent. They need the product to feel trustworthy, active, and production-ready even while Shopify connection setup is still in progress.
 
 ## Product Purpose
 
-NotifyPilot is a white-label SaaS dashboard for web push marketing. It exists to help e-commerce stores collect browser subscribers and send push campaigns for discounts, launches, restocks, announcements, and future abandoned-cart recovery.
+GrindCTRL is a white-label SaaS dashboard for web push marketing. It exists to help e-commerce stores collect browser subscribers and send push campaigns for discounts, launches, restocks, announcements, and future abandoned-cart recovery.
 
 Success means the dashboard works as a real MVP now with Supabase-backed tenant data, conservative send safety, protected dashboard routes, complete campaign flows, Shopify OAuth, storefront script, service worker, n8n sender, and a safe path to live push delivery.
 
 ## Brand Personality
 
-NotifyPilot should feel precise, premium, and operational. The tone is direct and calm: it shows store readiness, campaign performance, and send risk clearly without exposing internal implementation details.
+GrindCTRL should feel precise, premium, and operational. The tone is direct and calm: it shows store readiness, campaign performance, and send risk clearly without exposing internal implementation details.
 
 The interface should sit closer to trusted product tools like Stripe, Linear, and Shopify Admin than to a marketing landing page. It should feel like software a store owner would trust during a real campaign window.
 

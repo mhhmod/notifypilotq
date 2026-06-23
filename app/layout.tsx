@@ -19,10 +19,10 @@ const body = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "SN2 Studios",
-    template: "%s | SN2 Studios"
+    default: "GrindCTRL",
+    template: "%s | GrindCTRL"
   },
-  description: "Web push campaigns for e-commerce stores"
+  description: "GrindCTRL — web push campaigns for e-commerce stores"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
