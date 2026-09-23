@@ -212,8 +212,23 @@ export async function deleteDraftCampaign(campaignId: string, actorEmail: string
   return { ok: true };
 }
 
-async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipient[]> {
-  const existing = (await getCampaign(campaign.id))?.recipients ?? [];
+// Large audiences now exceed a single comfortable PostgREST payload, so recipient
+// writes are chunked. Same rows, same conflict target — just smaller requests.
+const RECIPIENT_UPSERT_BATCH_SIZE = 500;
+
+async function upsertRecipientsInBatches(tenantId: string, recipients: CampaignRecipient[], action: string) {
+  const supabase = getSupabaseAdminOrThrow();
+  for (let index = 0; index < recipients.length; index += RECIPIENT_UPSERT_BATCH_SIZE) {
+    const batch = recipients.slice(index, index + RECIPIENT_UPSERT_BATCH_SIZE);
+    const { error } = await supabase.from("np_push_campaign_recipients").upsert(
+      batch.map((recipient) => recipientToRow(recipient, tenantId)),
+      { onConflict: "campaign_id,subscriber_id" }
+    );
+    if (error) throw new Error(`${action}: ${error.message}`);
+  }
+}
+
+async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipient[]> {  const existing = (await getCampaign(campaign.id))?.recipients ?? [];
   if (existing.length > 0) return existing;
 
   const recipients = (await audienceSubscribers(campaign.audience, campaign.audienceGroupId)).map((subscriber) => ({
@@ -226,13 +241,7 @@ async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipie
 
   campaign.totalRecipients = recipients.length;
   if (canUseProductionData() && recipients.length > 0) {
-    const supabase = getSupabaseAdminOrThrow();
-    const { error } = await supabase
-      .from("np_push_campaign_recipients")
-      .upsert(recipients.map((recipient) => recipientToRow(recipient, campaign.tenantId)), {
-        onConflict: "campaign_id,subscriber_id"
-      });
-    if (error) throw new Error(`Create recipients failed: ${error.message}`);
+    await upsertRecipientsInBatches(campaign.tenantId, recipients, "Create recipients failed");
   } else {
     const store = getStore();
     store.campaignRecipients.unshift(...recipients);
@@ -272,13 +281,8 @@ async function completeDelivery(
   campaign.clickRate = campaign.sentCount > 0 ? (campaign.clickCount / campaign.sentCount) * 100 : 0;
 
   if (canUseProductionData()) {
+    await upsertRecipientsInBatches(campaign.tenantId, recipients, "Update recipients failed");
     const supabase = getSupabaseAdminOrThrow();
-    const { error: recipientError } = await supabase
-      .from("np_push_campaign_recipients")
-      .upsert(recipients.map((recipient) => recipientToRow(recipient, campaign.tenantId)), {
-        onConflict: "campaign_id,subscriber_id"
-      });
-    if (recipientError) throw new Error(`Update recipients failed: ${recipientError.message}`);
     const { error: campaignError } = await supabase
       .from("np_push_campaigns")
       .update(campaignToRow(campaign))

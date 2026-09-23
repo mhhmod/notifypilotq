@@ -170,6 +170,30 @@ function assertNoError(error: { message: string } | null, action: string) {
   if (error) throw new Error(`${action}: ${error.message}`);
 }
 
+// Supabase caps an unbounded select at 1,000 rows (silent truncation, HTTP 200).
+// Every multi-row read must page through .range() so subscriber, campaign, and
+// discount lists stay complete as the store grows.
+const SUPABASE_PAGE_SIZE = 1000;
+
+type PageResult<T> = {
+  data: T[] | null;
+  error: { message: string } | null;
+};
+
+async function fetchAllPages<T>(action: string, fetchPage: (from: number, to: number) => PromiseLike<PageResult<T>>) {
+  const rows: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await fetchPage(from, from + SUPABASE_PAGE_SIZE - 1);
+    assertNoError(error, action);
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < SUPABASE_PAGE_SIZE) break;
+    from += SUPABASE_PAGE_SIZE;
+  }
+  return rows;
+}
+
 function isMissingGroupSchemaError(error: { code?: string; message?: string } | null) {
   return Boolean(error && (error.code === "42P01" || error.code === "42703" || /np_subscriber_group/i.test(error.message ?? "")));
 }
@@ -495,13 +519,15 @@ export async function listSubscribersFromData() {
   if (!canUseProductionData()) return [...getStore().subscribers].sort((a, b) => Date.parse(b.subscribedAt) - Date.parse(a.subscribedAt));
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase
-    .from("np_push_subscribers")
-    .select("*")
-    .eq("tenant_id", tenant.id)
-    .order("subscribed_at", { ascending: false });
-  assertNoError(error, "Load subscribers failed");
-  return (data ?? []).map(subscriberFromRow);
+  const rows = await fetchAllPages<SubscriberRow>("Load subscribers failed", (from, to) =>
+    supabase
+      .from("np_push_subscribers")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .order("subscribed_at", { ascending: false })
+      .range(from, to)
+  );
+  return rows.map(subscriberFromRow);
 }
 
 export async function listSubscriberGroupsFromData(): Promise<SubscriberGroupSummary[]> {
@@ -525,26 +551,38 @@ export async function listSubscriberGroupsFromData(): Promise<SubscriberGroupSum
 
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const [groupsResult, membershipsResult, subscribersResult] = await Promise.all([
-    supabase.from("np_subscriber_groups").select("*").eq("tenant_id", tenant.id).order("name", { ascending: true }),
-    supabase.from("np_subscriber_group_members").select("*").eq("tenant_id", tenant.id),
-    supabase.from("np_push_subscribers").select("id,status").eq("tenant_id", tenant.id)
-  ]);
-
-  if (isMissingGroupSchemaError(groupsResult.error) || isMissingGroupSchemaError(membershipsResult.error)) return [];
-  assertNoError(groupsResult.error, "Load subscriber groups failed");
-  assertNoError(membershipsResult.error, "Load subscriber group members failed");
-  assertNoError(subscribersResult.error, "Load subscriber group subscriber counts failed");
+  let groupsRows: SubscriberGroupRow[];
+  let membershipsRows: SubscriberGroupMembershipRow[];
+  let subscribersRows: { id: string; status: string }[];
+  try {
+    [groupsRows, membershipsRows, subscribersRows] = await Promise.all([
+      fetchAllPages<SubscriberGroupRow>("Load subscriber groups failed", (from, to) =>
+        supabase.from("np_subscriber_groups").select("*").eq("tenant_id", tenant.id).order("name", { ascending: true }).range(from, to)
+      ),
+      fetchAllPages<SubscriberGroupMembershipRow>("Load subscriber group members failed", (from, to) =>
+        supabase
+          .from("np_subscriber_group_members")
+          .select("*")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: true })
+          .range(from, to)
+      ),
+      fetchAllPages<{ id: string; status: string }>("Load subscriber group subscriber counts failed", (from, to) =>
+        supabase.from("np_push_subscribers").select("id,status").eq("tenant_id", tenant.id).order("id").range(from, to)
+      )
+    ]);
+  } catch (error) {
+    if (isMissingGroupSchemaError(error as { code?: string; message?: string } | null)) return [];
+    throw error;
+  }
 
   const activeSubscribers = new Set(
-    (subscribersResult.data ?? [])
-      .filter((subscriber) => subscriber.status === "Active")
-      .map((subscriber) => subscriber.id)
+    subscribersRows.filter((subscriber) => subscriber.status === "Active").map((subscriber) => subscriber.id)
   );
 
-  return (groupsResult.data ?? []).map((row) => {
+  return groupsRows.map((row) => {
     const group = subscriberGroupFromRow(row);
-    const memberships = (membershipsResult.data ?? []).filter((membership) => membership.group_id === group.id);
+    const memberships = membershipsRows.filter((membership) => membership.group_id === group.id);
     return {
       ...group,
       subscriberCount: memberships.length,
@@ -557,36 +595,50 @@ export async function listSubscriberGroupMembershipsFromData(): Promise<Subscrib
   if (!canUseProductionData()) return [...getStore().subscriberGroupMemberships];
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase.from("np_subscriber_group_members").select("*").eq("tenant_id", tenant.id);
-  if (isMissingGroupSchemaError(error)) return [];
-  assertNoError(error, "Load subscriber group members failed");
-  return (data ?? []).map(subscriberGroupMembershipFromRow);
+  try {
+    const rows = await fetchAllPages<SubscriberGroupMembershipRow>("Load subscriber group members failed", (from, to) =>
+      supabase
+        .from("np_subscriber_group_members")
+        .select("*")
+        .eq("tenant_id", tenant.id)
+        .order("created_at", { ascending: true })
+        .range(from, to)
+    );
+    return rows.map(subscriberGroupMembershipFromRow);
+  } catch (error) {
+    if (isMissingGroupSchemaError(error as { code?: string; message?: string } | null)) return [];
+    throw error;
+  }
 }
 
 export async function listDiscountCodesFromData() {
   if (!canUseProductionData()) return [...getStore().discountCodes];
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase
-    .from("np_discount_codes")
-    .select("*")
-    .eq("tenant_id", tenant.id)
-    .order("created_at", { ascending: false });
-  assertNoError(error, "Load discounts failed");
-  return (data ?? []).map(discountFromRow);
+  const rows = await fetchAllPages<DiscountRow>("Load discounts failed", (from, to) =>
+    supabase
+      .from("np_discount_codes")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .order("created_at", { ascending: false })
+      .range(from, to)
+  );
+  return rows.map(discountFromRow);
 }
 
 export async function listCampaignsFromData() {
   if (!canUseProductionData()) return [...getStore().campaigns].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase
-    .from("np_push_campaigns")
-    .select("*")
-    .eq("tenant_id", tenant.id)
-    .order("created_at", { ascending: false });
-  assertNoError(error, "Load campaigns failed");
-  return (data ?? []).map(campaignFromRow);
+  const rows = await fetchAllPages<CampaignRow>("Load campaigns failed", (from, to) =>
+    supabase
+      .from("np_push_campaigns")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .order("created_at", { ascending: false })
+      .range(from, to)
+  );
+  return rows.map(campaignFromRow);
 }
 
 export async function getCampaignBundleFromData(campaignId: string) {
@@ -604,24 +656,44 @@ export async function getCampaignBundleFromData(campaignId: string) {
 
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const [campaignResult, recipientsResult, eventsResult, subscribersResult] = await Promise.all([
+  const [campaignResult, recipientsRows, eventsRows, subscribersRows] = await Promise.all([
     supabase.from("np_push_campaigns").select("*").eq("tenant_id", tenant.id).eq("id", campaignId).maybeSingle(),
-    supabase.from("np_push_campaign_recipients").select("*").eq("tenant_id", tenant.id).eq("campaign_id", campaignId),
-    supabase.from("np_push_events").select("*").eq("tenant_id", tenant.id).eq("campaign_id", campaignId).order("created_at", { ascending: false }),
-    supabase.from("np_push_subscribers").select("*").eq("tenant_id", tenant.id)
+    fetchAllPages<RecipientRow>("Load recipients failed", (from, to) =>
+      supabase
+        .from("np_push_campaign_recipients")
+        .select("*")
+        .eq("tenant_id", tenant.id)
+        .eq("campaign_id", campaignId)
+        .order("subscriber_id")
+        .range(from, to)
+    ),
+    fetchAllPages<EventRow>("Load campaign events failed", (from, to) =>
+      supabase
+        .from("np_push_events")
+        .select("*")
+        .eq("tenant_id", tenant.id)
+        .eq("campaign_id", campaignId)
+        .order("created_at", { ascending: false })
+        .range(from, to)
+    ),
+    fetchAllPages<SubscriberRow>("Load campaign subscribers failed", (from, to) =>
+      supabase
+        .from("np_push_subscribers")
+        .select("*")
+        .eq("tenant_id", tenant.id)
+        .order("subscribed_at", { ascending: false })
+        .range(from, to)
+    )
   ]);
 
   assertNoError(campaignResult.error, "Load campaign failed");
-  assertNoError(recipientsResult.error, "Load recipients failed");
-  assertNoError(eventsResult.error, "Load campaign events failed");
-  assertNoError(subscribersResult.error, "Load campaign subscribers failed");
   if (!campaignResult.data) return null;
 
   return {
     campaign: campaignFromRow(campaignResult.data),
-    recipients: (recipientsResult.data ?? []).map(recipientFromRow),
-    events: (eventsResult.data ?? []).map(eventFromRow),
-    subscribers: (subscribersResult.data ?? []).map(subscriberFromRow)
+    recipients: recipientsRows.map(recipientFromRow),
+    events: eventsRows.map(eventFromRow),
+    subscribers: subscribersRows.map(subscriberFromRow)
   };
 }
 
@@ -661,9 +733,15 @@ export async function listClicksFromData() {
   if (!canUseProductionData()) return [...getStore().pushClicks];
   const supabase = getSupabaseAdminOrThrow();
   const tenant = await getTenant();
-  const { data, error } = await supabase.from("np_push_clicks").select("*").eq("tenant_id", tenant.id);
-  assertNoError(error, "Load clicks failed");
-  return (data ?? []).map(clickFromRow);
+  const rows = await fetchAllPages<ClickRow>("Load clicks failed", (from, to) =>
+    supabase
+      .from("np_push_clicks")
+      .select("*")
+      .eq("tenant_id", tenant.id)
+      .order("clicked_at", { ascending: false })
+      .range(from, to)
+  );
+  return rows.map(clickFromRow);
 }
 
 export async function insertEvent(supabase: SupabaseAdminClient, event: PushEvent) {
