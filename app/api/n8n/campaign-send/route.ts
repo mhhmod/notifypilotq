@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { verifyInternalApiKey } from "@/lib/security/internal-api";
 import { checkRateLimit } from "@/lib/security/rate-limit";
-import { getCampaign, sendExistingCampaignLive } from "@/services/campaigns/campaigns.service";
+import { getCampaign, resumeCampaignDelivery, sendExistingCampaignLive } from "@/services/campaigns/campaigns.service";
 
 const schema = z.object({
   campaignId: z.string().optional(),
-  dryRun: z.boolean().default(true)
+  dryRun: z.boolean().default(true),
+  resume: z.boolean().default(false),
+  batchSize: z.number().int().min(1).max(100).optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -26,6 +28,22 @@ export async function POST(request: NextRequest) {
 
   if (!parsed.data.campaignId) {
     return NextResponse.json({ error: "Campaign ID is required." }, { status: 400 });
+  }
+
+  if (parsed.data.resume) {
+    try {
+      const result = await resumeCampaignDelivery(parsed.data.campaignId, "n8n", parsed.data.batchSize);
+      return NextResponse.json({
+        ok: true,
+        campaign: result.campaign,
+        done: result.done,
+        remaining: result.remaining,
+        sentThisBatch: result.sentThisBatch,
+        failedThisBatch: result.failedThisBatch
+      });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to resume campaign." }, { status: 400 });
+    }
   }
 
   const details = await getCampaign(parsed.data.campaignId);

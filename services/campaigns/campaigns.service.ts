@@ -228,7 +228,66 @@ async function upsertRecipientsInBatches(tenantId: string, recipients: CampaignR
   }
 }
 
-async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipient[]> {  const existing = (await getCampaign(campaign.id))?.recipients ?? [];
+// Delivery progress is persisted after every small send batch, so an interrupted
+// request (timeout, crash, redeploy) never loses accounting: re-running delivery
+// skips Sent/Failed recipients and continues with the remaining Queued ones.
+const DELIVERY_SEND_BATCH_SIZE = 25;
+const DELIVERY_RESUME_BATCH_LIMIT = 100;
+
+async function persistDeliveryProgress(
+  campaign: PushCampaign,
+  allRecipients: CampaignRecipient[],
+  changedRecipients: CampaignRecipient[]
+) {
+  campaign.totalRecipients = allRecipients.length;
+  campaign.sentCount = allRecipients.filter((recipient) => recipient.status === "Sent").length;
+  campaign.failedCount = allRecipients.filter((recipient) => recipient.status === "Failed").length;
+  campaign.clickCount = campaign.clickCount ?? 0;
+  campaign.clickRate = campaign.sentCount > 0 ? (campaign.clickCount / campaign.sentCount) * 100 : 0;
+
+  if (!canUseProductionData()) return;
+  if (changedRecipients.length > 0) {
+    await upsertRecipientsInBatches(campaign.tenantId, changedRecipients, "Update recipients failed");
+  }
+  const supabase = getSupabaseAdminOrThrow();
+  const { error: campaignError } = await supabase
+    .from("np_push_campaigns")
+    .update(campaignToRow(campaign))
+    .eq("tenant_id", campaign.tenantId)
+    .eq("id", campaign.id);
+  if (campaignError) throw new Error(`Update campaign failed: ${campaignError.message}`);
+}
+
+async function sendRecipientBatch(
+  campaign: PushCampaign,
+  recipients: CampaignRecipient[],
+  subscribersById: Map<string, PushSubscriber>
+) {
+  for (const recipient of recipients) {
+    if (recipient.status === "Sent") continue;
+    const subscriber = subscribersById.get(recipient.subscriberId);
+    if (!subscriber) {
+      recipient.status = "Failed";
+      recipient.error = "Subscriber not found.";
+      continue;
+    }
+
+    const result = await sendPushToSubscriber(campaign, subscriber);
+    recipient.status = result.ok ? "Sent" : "Failed";
+    recipient.sentAt = result.ok ? new Date().toISOString() : undefined;
+    recipient.error = result.ok ? undefined : result.message;
+  }
+}
+
+function finalizeDelivery(campaign: PushCampaign, recipients: CampaignRecipient[]) {
+  const sentCount = recipients.filter((recipient) => recipient.status === "Sent").length;
+  const failedCount = recipients.filter((recipient) => recipient.status === "Failed").length;
+  campaign.status = failedCount > 0 && sentCount === 0 ? "Failed" : "Sent";
+  campaign.sentAt = new Date().toISOString();
+}
+
+async function ensureRecipients(campaign: PushCampaign): Promise<CampaignRecipient[]> {
+  const existing = (await getCampaign(campaign.id))?.recipients ?? [];
   if (existing.length > 0) return existing;
 
   const recipients = (await audienceSubscribers(campaign.audience, campaign.audienceGroupId)).map((subscriber) => ({
@@ -256,40 +315,79 @@ async function completeDelivery(
   subscribers: PushSubscriber[]
 ) {
   const subscribersById = new Map(subscribers.map((subscriber) => [subscriber.id, subscriber]));
-  let sentCount = 0;
-  let failedCount = 0;
 
-  for (const recipient of recipients) {
-    if (recipient.status === "Sent") continue;
-    const subscriber = subscribersById.get(recipient.subscriberId);
-    if (!subscriber) continue;
-
-    const result = await sendPushToSubscriber(campaign, subscriber);
-    recipient.status = result.ok ? "Sent" : "Failed";
-    recipient.sentAt = result.ok ? new Date().toISOString() : undefined;
-    recipient.error = result.ok ? undefined : result.message;
-    sentCount += result.ok ? 1 : 0;
-    failedCount += result.ok ? 0 : 1;
+  for (let index = 0; index < recipients.length; index += DELIVERY_SEND_BATCH_SIZE) {
+    const slice = recipients.slice(index, index + DELIVERY_SEND_BATCH_SIZE);
+    await sendRecipientBatch(campaign, slice, subscribersById);
+    await persistDeliveryProgress(campaign, recipients, slice);
   }
 
-  campaign.status = failedCount > 0 && sentCount === 0 ? "Failed" : "Sent";
-  campaign.sentAt = new Date().toISOString();
-  campaign.sentCount = sentCount;
-  campaign.failedCount = failedCount;
-  campaign.totalRecipients = recipients.length;
-  campaign.clickCount = campaign.clickCount ?? 0;
-  campaign.clickRate = campaign.sentCount > 0 ? (campaign.clickCount / campaign.sentCount) * 100 : 0;
+  finalizeDelivery(campaign, recipients);
+  await persistDeliveryProgress(campaign, recipients, []);
+}
 
-  if (canUseProductionData()) {
-    await upsertRecipientsInBatches(campaign.tenantId, recipients, "Update recipients failed");
-    const supabase = getSupabaseAdminOrThrow();
-    const { error: campaignError } = await supabase
-      .from("np_push_campaigns")
-      .update(campaignToRow(campaign))
-      .eq("tenant_id", campaign.tenantId)
-      .eq("id", campaign.id);
-    if (campaignError) throw new Error(`Update campaign failed: ${campaignError.message}`);
+export async function resumeCampaignDelivery(campaignId: string, actorEmail: string, batchSize = DELIVERY_SEND_BATCH_SIZE) {
+  const safeBatchSize = Math.min(Math.max(Math.floor(batchSize) || DELIVERY_SEND_BATCH_SIZE, 1), DELIVERY_RESUME_BATCH_LIMIT);
+  const bundle = await getCampaign(campaignId);
+  const campaign = bundle?.campaign;
+  if (!campaign) throw new Error("Campaign not found.");
+  if (campaign.status === "Sent" || campaign.status === "Failed" || campaign.status === "Cancelled") {
+    throw new Error("Campaign has already finished.");
   }
+  if (campaign.status !== "Queued" && campaign.status !== "Sending" && campaign.status !== "Scheduled") {
+    throw new Error("Only queued, sending, or scheduled campaigns can be resumed.");
+  }
+
+  let recipients = bundle.recipients;
+  if (recipients.length === 0) recipients = await ensureRecipients(campaign);
+
+  if (campaign.status !== "Sending") {
+    campaign.status = "Sending";
+    const resumedEvent = {
+      id: canUseProductionData() ? randomUUID() : newId("evt"),
+      tenantId: campaign.tenantId,
+      campaignId: campaign.id,
+      eventType: "Delivery resumed",
+      message: "Delivery resumed after an interrupted send",
+      createdAt: new Date().toISOString()
+    };
+    if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), resumedEvent);
+    else getStore().pushEvents.unshift(resumedEvent);
+  }
+
+  const subscribersById = new Map(bundle.subscribers.map((subscriber) => [subscriber.id, subscriber]));
+  const pending = recipients.filter((recipient) => recipient.status === "Queued").slice(0, safeBatchSize);
+  await sendRecipientBatch(campaign, pending, subscribersById);
+  const remaining = recipients.filter((recipient) => recipient.status === "Queued").length;
+
+  if (remaining === 0) finalizeDelivery(campaign, recipients);
+  await persistDeliveryProgress(campaign, recipients, pending);
+
+  const sentThisBatch = pending.filter((recipient) => recipient.status === "Sent").length;
+  const failedThisBatch = pending.filter((recipient) => recipient.status === "Failed").length;
+
+  if (remaining === 0) {
+    const completeEvent = {
+      id: canUseProductionData() ? randomUUID() : newId("evt"),
+      tenantId: campaign.tenantId,
+      campaignId: campaign.id,
+      eventType: "Send completed",
+      message: "Delivery completed",
+      createdAt: new Date().toISOString()
+    };
+    if (canUseProductionData()) await insertEvent(getSupabaseAdminOrThrow(), completeEvent);
+    else getStore().pushEvents.unshift(completeEvent);
+  }
+
+  recordAuditLog({
+    action: "send resume",
+    actorEmail,
+    entityType: "campaign",
+    entityId: campaign.id,
+    metadata: { sentThisBatch, failedThisBatch, remaining }
+  });
+
+  return { campaign, done: remaining === 0, sentThisBatch, failedThisBatch, remaining };
 }
 
 export async function sendTestCampaign(input: CampaignInput, actorEmail: string) {
