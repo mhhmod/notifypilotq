@@ -8,7 +8,7 @@ const schema = z.object({
   campaignId: z.string().optional(),
   dryRun: z.boolean().default(true),
   resume: z.boolean().default(false),
-  batchSize: z.number().int().min(1).max(100).optional()
+  batchSize: z.number().int().min(1).max(500).optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -16,11 +16,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  const limit = checkRateLimit("n8n-campaign-send", 20, 60 * 60 * 1000);
-  if (!limit.allowed) return NextResponse.json({ error: "Rate limit reached." }, { status: 429 });
-
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid campaign request." }, { status: 400 });
+
+  // Resume only advances already-queued recipients of an authorized send, so it
+  // gets its own generous bucket. Full sends (which build new audiences) keep
+  // the strict bucket.
+  const resumeCall = !parsed.data.dryRun && parsed.data.resume && parsed.data.campaignId;
+  const limit = resumeCall
+    ? checkRateLimit("n8n-campaign-resume", 300, 60 * 60 * 1000)
+    : checkRateLimit("n8n-campaign-send", 20, 60 * 60 * 1000);
+  if (!limit.allowed) return NextResponse.json({ error: "Rate limit reached." }, { status: 429 });
 
   if (parsed.data.dryRun) {
     return NextResponse.json({ ok: true, status: "Campaign Engine Ready", dryRun: true });

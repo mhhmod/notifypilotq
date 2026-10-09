@@ -231,8 +231,11 @@ async function upsertRecipientsInBatches(tenantId: string, recipients: CampaignR
 // Delivery progress is persisted after every small send batch, so an interrupted
 // request (timeout, crash, redeploy) never loses accounting: re-running delivery
 // skips Sent/Failed recipients and continues with the remaining Queued ones.
+// Pushes are I/O-bound, so each batch is sent with bounded parallelism.
 const DELIVERY_SEND_BATCH_SIZE = 25;
-const DELIVERY_RESUME_BATCH_LIMIT = 100;
+const DELIVERY_SEND_CONCURRENCY = 10;
+const DELIVERY_RESUME_BATCH_SIZE = 100;
+const DELIVERY_RESUME_BATCH_LIMIT = 500;
 
 async function persistDeliveryProgress(
   campaign: PushCampaign,
@@ -263,19 +266,37 @@ async function sendRecipientBatch(
   recipients: CampaignRecipient[],
   subscribersById: Map<string, PushSubscriber>
 ) {
-  for (const recipient of recipients) {
-    if (recipient.status === "Sent") continue;
-    const subscriber = subscribersById.get(recipient.subscriberId);
-    if (!subscriber) {
-      recipient.status = "Failed";
-      recipient.error = "Subscriber not found.";
-      continue;
-    }
+  for (let index = 0; index < recipients.length; index += DELIVERY_SEND_CONCURRENCY) {
+    const chunk = recipients.slice(index, index + DELIVERY_SEND_CONCURRENCY);
+    await Promise.all(
+      chunk.map(async (recipient) => {
+        if (recipient.status === "Sent") return;
+        const subscriber = subscribersById.get(recipient.subscriberId);
+        if (!subscriber) {
+          recipient.status = "Failed";
+          recipient.error = "Subscriber not found.";
+          return;
+        }
 
-    const result = await sendPushToSubscriber(campaign, subscriber);
-    recipient.status = result.ok ? "Sent" : "Failed";
-    recipient.sentAt = result.ok ? new Date().toISOString() : undefined;
-    recipient.error = result.ok ? undefined : result.message;
+        const result = await sendPushToSubscriber(campaign, subscriber);
+        recipient.status = result.ok ? "Sent" : "Failed";
+        recipient.sentAt = result.ok ? new Date().toISOString() : undefined;
+        recipient.error = result.ok ? undefined : result.message;
+      })
+    );
+  }
+}
+
+async function deliverPendingRecipients(
+  campaign: PushCampaign,
+  allRecipients: CampaignRecipient[],
+  pendingRecipients: CampaignRecipient[],
+  subscribersById: Map<string, PushSubscriber>
+) {
+  for (let index = 0; index < pendingRecipients.length; index += DELIVERY_SEND_BATCH_SIZE) {
+    const slice = pendingRecipients.slice(index, index + DELIVERY_SEND_BATCH_SIZE);
+    await sendRecipientBatch(campaign, slice, subscribersById);
+    await persistDeliveryProgress(campaign, allRecipients, slice);
   }
 }
 
@@ -316,17 +337,18 @@ async function completeDelivery(
 ) {
   const subscribersById = new Map(subscribers.map((subscriber) => [subscriber.id, subscriber]));
 
-  for (let index = 0; index < recipients.length; index += DELIVERY_SEND_BATCH_SIZE) {
-    const slice = recipients.slice(index, index + DELIVERY_SEND_BATCH_SIZE);
-    await sendRecipientBatch(campaign, slice, subscribersById);
-    await persistDeliveryProgress(campaign, recipients, slice);
-  }
+  await deliverPendingRecipients(
+    campaign,
+    recipients,
+    recipients.filter((recipient) => recipient.status !== "Sent"),
+    subscribersById
+  );
 
   finalizeDelivery(campaign, recipients);
   await persistDeliveryProgress(campaign, recipients, []);
 }
 
-export async function resumeCampaignDelivery(campaignId: string, actorEmail: string, batchSize = DELIVERY_SEND_BATCH_SIZE) {
+export async function resumeCampaignDelivery(campaignId: string, actorEmail: string, batchSize = DELIVERY_RESUME_BATCH_SIZE) {
   const safeBatchSize = Math.min(Math.max(Math.floor(batchSize) || DELIVERY_SEND_BATCH_SIZE, 1), DELIVERY_RESUME_BATCH_LIMIT);
   const bundle = await getCampaign(campaignId);
   const campaign = bundle?.campaign;
@@ -357,7 +379,7 @@ export async function resumeCampaignDelivery(campaignId: string, actorEmail: str
 
   const subscribersById = new Map(bundle.subscribers.map((subscriber) => [subscriber.id, subscriber]));
   const pending = recipients.filter((recipient) => recipient.status === "Queued").slice(0, safeBatchSize);
-  await sendRecipientBatch(campaign, pending, subscribersById);
+  await deliverPendingRecipients(campaign, recipients, pending, subscribersById);
   const remaining = recipients.filter((recipient) => recipient.status === "Queued").length;
 
   if (remaining === 0) finalizeDelivery(campaign, recipients);
